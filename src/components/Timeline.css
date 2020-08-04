@@ -1,0 +1,29 @@
+
+.ball {
+	border-radius: 50px;
+    background-color: rgb(255, 255, 255);
+    position:absolute;
+    display: inline-block;
+	height: 20px;
+    width: 20px;
+    z-index:10;
+    top:100%;
+}
+.ball:hover {
+    background-color: rgb(158, 158, 158);
+}
+
+#timelineContainer {
+	position: absolute;
+    bottom: 10%;
+    left: 0;
+    right: 0;
+    height:1px;
+    width:700px;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.timelineLine {
+    border: 1px solid rgb(187, 187, 187);
+}
