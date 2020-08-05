@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-// import ReactDOM from "react-dom";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -7,10 +6,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import BuildingGLB from './assets/glb/dlo3.glb';
-import PlaneGLB from './assets/glb/airplane2.glb';
+import PlaneGLB from './assets/glb/airplanev2.glb';
 import DLBuildingGLB from './assets/glb/dlbuildingv3.glb';
-import Airplane from './assets/glb/airplaneAndBanner.glb';
 
 import axios from "axios";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
@@ -20,9 +17,9 @@ import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLigh
 import About from './components/About';
 import Timeline from './components/Timeline'
 
-// import THREEx from './threex.daynight'
 import './App.css';
 
+/// Initialize Constants ///
 var stats = new Stats();
 var clock = new THREE.Clock();
 var timeCounter = 0;
@@ -35,21 +32,33 @@ var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
 var intersected;
 
-
-var ENTIRE_SCENE = 0, BLOOM_SCENE = 1;
+var BLOOM_SCENE = 1;
 
 var bloomLayer = new THREE.Layers();
 bloomLayer.set( BLOOM_SCENE );
 var darkMaterial = new THREE.MeshBasicMaterial( { color: "black" } );
 var materials = {};
 
+var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window146", 
+"Window147", "Window132", "Window133", "Window134", "Window135", "WindowLarge202", 
+"Window25", "Window26", "Window75", "Window76", "Window264", "Window265", "Window266", 
+"Window267", "WindowSide02", "WindowSide01", "Window55", "Window56", "Window57", 
+"Window58", "Window217", "Window218", "Window219", "Window220", "WindowSide04",
+"WindowSide03", "WindowLarge01"];
+
+
+var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
+
+const style = {
+  height: window.innerHeight, // we can control scene size by setting container dimensions
+};
+/// End Initialize Constants ///
+
 
 
 /// Day night cycle ///
 THREEx.DayNight	= {}
-
 THREEx.DayNight.baseURL	= '../'
-
 THREEx.DayNight.currentPhase	= function(sunAngle){
 	if( Math.sin(sunAngle) > Math.sin(0) ){
 		return 'day'
@@ -79,8 +88,6 @@ THREEx.DayNight.SunLight	= function(){
 		light.position.x = -3;
 		light.position.y = Math.sin(sunAngle) * 20;
 		light.position.z = Math.cos(sunAngle) * 10;
-// console.log('Phase ', THREEx.DayNight.currentPhase(sunAngle))
-
 		var phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
 			light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
@@ -92,15 +99,9 @@ THREEx.DayNight.SunLight	= function(){
 		}
 	}	
 }
+/// End Day night cycle///
 
 
-
-var MODELS = [BuildingGLB, PlaneGLB, DLBuildingGLB, Airplane];
-  
-
-const style = {
-  height: window.innerHeight, // we can control scene size by setting container dimensions
-};
 
 /// main component/// 
 class App extends Component {
@@ -108,26 +109,25 @@ class App extends Component {
     super(props);
     this.myRef = React.createRef();
     this.state = {
-      model:"",
       time:"",
       timelineActive:0,
     };
     this.load = this.load.bind(this);
     this.startAnimationLoop = this.startAnimationLoop.bind(this);
     this.updateModel = this.updateModel.bind(this);
-
     this.onDocumentMouseOver = this.onDocumentMouseOver.bind(this);
   };
   componentDidMount() {
     this.sceneSetup();
     this.load();
-    // this.startAnimationLoop();
     window.addEventListener("resize", this.handleWindowResize);
-    window.addEventListener( 'mousemove', this.onDocumentMouseOver );
+    window.addEventListener('mousemove', this.onDocumentMouseOver );
   }
 
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleWindowResize);
+    window.removeEventListener("mousemove", this.onDocumentMouseOver);
+
     window.cancelAnimationFrame(this.requestID);
     this.controls.dispose();
   }
@@ -141,43 +141,31 @@ class App extends Component {
     const height = appContainer.clientHeight;
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(60, width/height, 1, 10000);
-    this.camera.position.set(-10, 10, 10);
-    this.camera.lookAt(0, 5, 0);
+    this.camera = new THREE.PerspectiveCamera(60, width/height, 1, 10000); //init camera. 1, 1000 sets camera "Frustrum"; see docs
+    this.camera.position.set(-10, 10, 10); //set initial camera position
+    this.camera.lookAt(0, 5, 0); //set location camera initially points at 
     
     /// camera control ///
     this.controls = new OrbitControls(this.camera, this.el);
-    // this.controls.enableDamping = true;
+    this.controls.enableDamping = true;
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
-    // this.controls.maxDistance = 20;
-    // this.controls.minDistance = 2;
-    // this.controls.minPolarAngle = Math.PI/10;
-    // this.controls.maxPolarAngle = Math.PI/4;
+    this.controls.maxDistance = 50; //min zoom
+    this.controls.minDistance = 2; //max zoom
+    this.controls.minPolarAngle = Math.PI/10; //min camera angle
+    this.controls.maxPolarAngle = Math.PI/4; //max camera angle
 
     this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false}); // init renderer
     this.renderer.setSize(width, height);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     
     
     // renderer.autoClear = false;
     this.renderer.setSize(width, height);
-    // this.renderer.toneMapping = THREE.ReinhardToneMapping;
+    // this.renderer.toneMapping = THREE.ReinhardToneMapping; // can set tonemapping for overall vibes
     // this.renderer.toneMappingExposure = Math.pow(1, 4.0);
-    this.renderer.setClearColor("#120729");
 
     this.el.appendChild(this.renderer.domElement); // mount using React ref
-
-    var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
-    var matStdFloor = new THREE.MeshStandardMaterial( { color:"#9b7fa1", roughness: 0.4, metalness: 0 } );
-    // var matStdFloor = new THREE.MeshPhongMaterial( { color:"#ffe19c" } );
-    // node.material = new THREE.MeshPhongMaterial({
-    //   color:"#060f2b",
-    //  });
-
-    var floor = new THREE.Mesh( geoFloor, matStdFloor );
-    floor.receiveShadow = true;
-    this.scene.add( floor );
 
     this.renderScene = new RenderPass( this.scene, this.camera )    
     this.composer = new EffectComposer( this.renderer );
@@ -185,34 +173,49 @@ class App extends Component {
 
     this.par = new THREE.Group(); // init parent group for all objects in scene
 
-    /// insert lights
+
+    /// Floor ///
+    // var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
+    // var matStdFloor = new THREE.MeshStandardMaterial( { color:"#9b7fa1", roughness: 0.4, metalness: 0 } );
+    // var floor = new THREE.Mesh( geoFloor, matStdFloor );
+    // floor.receiveShadow = true;
+    // this.scene.add( floor );
+    /// End Floor /// 
+
+
+    /// insert lights ///
     this.sunLight	= new THREEx.DayNight.SunLight()
     this.scene.add( this.sunLight.object3d )    
     
     var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.2 );    // this.scene.add( hemiLight );
     this.scene.add(ambiLight)
+    /// end insert lights///
 
   };
 
+
+
+
   load = () => {
-    var __this = this;
+    var __this = this; //access "this inside functions
     const appContainer = document.getElementById("appContainer");
     // get container dimensions and use them for scene sizing
     const width = appContainer.clientWidth;
     const height = appContainer.clientHeight;
-    var numLoadedModels = 0;
-    var dracoLoader = new DRACOLoader();
+    var numLoadedModels = 0; // init local vars
+    var dracoLoader = new DRACOLoader(); // prep loader
+
+
     dracoLoader.setDecoderPath( 'three/examples/js/libs/draco/gltf/' );
-    loadModels();
+    loadModels(); // execute load models
     
     let setModelsInWorld = ()=> {
     
-        RectAreaLightUniformsLib.init();
-        ///add plane///
-        this.planeGroup = this.par.getObjectByName("/static/media/airplaneAndBanner.6dfad104.glb");
-        this.plane = this.planeGroup.getObjectByName("Plane")
-        this.banner = this.plane.getObjectByName("Banner");
-        console.log(this.plane)
+        ///ADD PLANE///
+        const planeGroup = this.par.getObjectByName("/static/media/airplanev2.38a418d8.glb");
+        const plane = planeGroup.getObjectByName("Plane")
+        const banner = plane.getObjectByName("Banner");
+
         var drawCanvas = document.createElement("CANVAS");
         drawCanvas.width = 1800;
         drawCanvas.height=1200;
@@ -230,35 +233,32 @@ class App extends Component {
         canvaTexture.wrapS = THREE.RepeatWrapping;
         canvaTexture.repeat.x = - 1;
 
-        this.banner.material	= new THREE.MeshStandardMaterial({
+        banner.material	= new THREE.MeshStandardMaterial({
           map	: canvaTexture,
           side: THREE.DoubleSide,
   
         })
     
-        
-        this.propellor = this.planeGroup.children[3];
-        this.mixer = new THREE.AnimationMixer( this.planeGroup );
-        this.mixer.clipAction(this.planeGroup.animations[1]).play();
-        this.mixer2 = new THREE.AnimationMixer( this.planeGroup );
-			  this.mixer2.clipAction(this.planeGroup.animations[0]).play();
-
-        // this.planeGroup.remove(this.planeGroup.children[0]);
-        // this.planeGroup.remove(this.planeGroup.children[0]);
-        var box = new THREE.Box3().setFromObject(this.planeGroup );
+        this.mixer = new THREE.AnimationMixer( planeGroup );
+        this.mixer.clipAction(planeGroup.animations[1]).play();
+        this.mixer2 = new THREE.AnimationMixer( planeGroup );
+			  this.mixer2.clipAction(planeGroup.animations[0]).play();
+        var box = new THREE.Box3().setFromObject( planeGroup );
         // Reset mesh position:
-        box.getCenter(this.planeGroup.position);
-        this.planeGroup.position.multiplyScalar(-1);
+        box.getCenter( planeGroup.position);
+        planeGroup.position.multiplyScalar(-1);
         this.planeRotateGroup = new THREE.Group();
 
         this.scene.add(this.planeRotateGroup);
-        this.planeRotateGroup.add(this.planeGroup);
+        this.planeRotateGroup.add( planeGroup);
         this.planeRotateGroup.rotation.z=Math.PI/6;
         this.planeRotateGroup.castShadow=true;
+        ///END ADD PLANE///
 
-        this.dlBuilding = this.par.getObjectByName("/static/media/dlbuildingv3.fb0f3294.glb");
-        this.dlBuilding.position.set(0, 0.5, 0);
-        this.dlBuilding.traverse( function(node) {
+        ///ADD BUILDING///
+        const dlBuilding = this.par.getObjectByName("/static/media/dlbuildingv3.fb0f3294.glb");
+        dlBuilding.position.set(0, 0.5, 0);
+        dlBuilding.traverse( function(node) {
           if ( node instanceof THREE.Mesh ) {
             // node.material = new THREE.MeshStandardMaterial({
             //   color:"#edb76f",
@@ -266,36 +266,21 @@ class App extends Component {
             }
 
         });
-        this.windows = this.dlBuilding.getObjectByName("Windows");
-        var frontWindows = this.windows.getObjectByName("FrontWindows");
-        // var circleWindows = windows.getObjectByName("CircularWindows");
-        // var backWindows = windows.getObjectByName("BackWindows");
-        // var octagonWindows = windows.getObjectByName("OctagonalWindows");
-        // var rightWindows = windows.getObjectByName("RightWindows");
-        // var leftWindows = windows.getObjectByName("LeftWindows");
-        var frontBottomRow = frontWindows.getObjectByName("BottomRow")
-        var frontMiddleRow = frontWindows.getObjectByName("MidRow")
-
-
-        this.scene.add(this.dlBuilding)
-
-
+        this.windows = dlBuilding.getObjectByName("Windows");
+        this.scene.add(dlBuilding)
+        ///END ADD BUILDING///
         console.log( 'Loading Complete!');
-        this.composer.setSize( width, height )
-        this.composer.addPass( this.renderScene )
-        this.finalComposer.setSize( width, height )
 
+        // GLOW WINDOWS //
         this.windows.traverse( function(node) {
           if ( node instanceof THREE.Mesh ) {
             node.material = new THREE.MeshBasicMaterial({
               color:"#e0cc48", // window ON
               });
             node.layers.toggle( BLOOM_SCENE );
-
             }
-
         });
-
+        RectAreaLightUniformsLib.init();
         this.windows.traverse( function( node ) {
           if ( node instanceof THREE.Mesh ) {
               if (node.name === "Window173" || node.name === "Window104") {
@@ -307,24 +292,20 @@ class App extends Component {
                   // rectLightMesh.scale.x = rectLight.width;
                   // rectLightMesh.scale.y = rectLight.height;
                   // rectLight.add( rectLightMesh );
-              } else if(node.name ==="Window05" || node.name==="Window06" || node.name ==="Window144"|| node.name ==="Window145" || node.name ==="Window146" || node.name ==="Window147" || node.name ==="Window132" || node.name ==="Window133" || node.name ==="Window134" || node.name ==="Window135") {
+              } else if(windowsPermaOff.includes(node.name)) {
                 node.material = new THREE.MeshBasicMaterial({
                   color:"#060f2b", // window OFF
                   });
               }
           }
         });
-        // frontMiddleRow.traverse( function( node ) {
-        //   if ( node instanceof THREE.Mesh ) {
-        //     if (node.name ==="Window05" || node.name==="Window06" || node.name ==="Window144"|| node.name ==="Window145" || node.name ==="Window146" || node.name ==="Window147" || node.name ==="Window132" || node.name ==="Window133" || node.name ==="Window134" || node.name ==="Window135") {
-        //         node.material = new THREE.MeshBasicMaterial({
-        //           color:"#060f2b", // window OFF
-        //           });
-        //       }
-        //   }
-        // });
+        // END GLOW WINDOWS //
 
       // to make the bloom computationally less expensive, let's apply one bloom step, and exclude the things we DON"T want to bloom!
+      this.composer.setSize( width, height )
+      this.composer.addPass( this.renderScene )
+      this.finalComposer.setSize( width, height )
+
       var bloomPass85 = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85)
       bloomPass85.threshold = 0.7;
       bloomPass85.strength = 0.9;
@@ -332,7 +313,7 @@ class App extends Component {
       this.finalComposer.addPass( this.renderScene )
       this.finalComposer.addPass( bloomPass85 )
 
-        this.startAnimationLoop()
+      this.startAnimationLoop()
       
     };
 
@@ -469,54 +450,68 @@ class App extends Component {
 
   onDocumentMouseOver( event ) {
     event.preventDefault();
-
+    const appContainer = document.getElementById("appContainer");
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
     raycaster.setFromCamera( mouse, this.camera );
     var intersects = raycaster.intersectObjects( this.scene.children, true );
+    var windowPopUp = document.createElement("div");
+    windowPopUp.id = "windowPopup"
+
     if ( intersects.length > 0 ) {
       var object = intersects[ 0 ].object;
       if (this.windows) {
-        if ((this.windows.getObjectByName(object.name) !=void(0)) && (this.windows.getObjectByName(object.name).type !="RectAreaLight")) {
+        if ((this.windows.getObjectByName(object.name) !==void(0)) && (this.windows.getObjectByName(object.name).type !=="RectAreaLight")) {
             if (intersected !== object) {
-            intersected = object;
             console.log("window name:")
             console.log(this.windows.getObjectByName(object.name));
-            if (intersected) intersected.material.color.setHex( intersected.currentHex );
+            
+            windowPopUp.innerHTML += object.name;
+            windowPopUp.style.left = event.clientX+'px';
+            windowPopUp.style.top = event.clientY+'px';
+            if (appContainer.querySelector("#windowPopup") === null) {
+            appContainer.appendChild(windowPopUp);
+            }
+            if (intersected) {
+              intersected.material.color.setHex( intersected.currentHex );
+            } else {
+              intersected = null;
+            }
+            intersected = object;
             intersected.currentHex = intersected.material.color.getHex();
-						intersected.material.color.setHex( 0xff9b4f ); // fix with https://github.com/mrdoob/three.js/blob/master/examples/webgl_interactive_cubes.html
-
-            // object.material.emissive.setHex(0xff9b4f);
-            // setTimeout(function() {
-            //   object.material.color.setHex( 0xff0000 )
-            // }, 500);
-          
+						intersected.material.color.setHex( 0x691524 );
           }
-        }
+        } else {
+            if (intersected) intersected.material.color.setHex( intersected.currentHex );
+            intersected = null;
+            if ((windowPopUp !==void(0)) && (appContainer.querySelector("#windowPopup") !== null)){
+                appContainer.removeChild(appContainer.querySelector("#windowPopup"));
+              } 
+
+
+          }
+    } else {
+        intersected=null;
+        if ((windowPopUp !==void(0)) && (appContainer.querySelector("#windowPopup") !== null)){
+          appContainer.removeChild(appContainer.querySelector("#windowPopup"));
+        } 
+
     }
     }
 
   }
   darkenNonBloomed( obj ) {
-
     if ( obj.isMesh && bloomLayer.test( obj.layers ) === false ) {
-
       materials[ obj.uuid ] = obj.material;
       obj.material = darkMaterial;
-
     }
-
   }
 
   restoreMaterial( obj ) {
-
     if ( materials[ obj.uuid ] ) {
-
       obj.material = materials[ obj.uuid ];
       delete materials[ obj.uuid ];
-
     }
-
   }
 
 

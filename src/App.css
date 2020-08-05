@@ -16,3 +16,17 @@ body {
 #appContainer {
   height:100%;
 }
+
+#windowPopup {
+  display:flex;
+  align-items: center;
+  justify-content: center; 
+  position:absolute;
+  background-color:white;
+  width:100px;
+  height:100px;
+  z-index:10;
+  border-radius:10px;
+  padding:5px;
+  font-family:Quicksand;
+}
