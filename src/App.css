@@ -22,7 +22,7 @@ body {
   align-items: center;
   justify-content: center; 
   position:absolute;
-  background-color:white;
+  background-color:rgb(212, 211, 211);
   width:100px;
   height:100px;
   z-index:10;

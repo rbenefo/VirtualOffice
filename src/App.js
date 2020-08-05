@@ -487,8 +487,6 @@ class App extends Component {
             if ((windowPopUp !==void(0)) && (appContainer.querySelector("#windowPopup") !== null)){
                 appContainer.removeChild(appContainer.querySelector("#windowPopup"));
               } 
-
-
           }
     } else {
         intersected=null;
