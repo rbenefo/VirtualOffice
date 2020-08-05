@@ -10,7 +10,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import BuildingGLB from './assets/glb/dlo3.glb';
 import PlaneGLB from './assets/glb/airplane2.glb';
 import DLBuildingGLB from './assets/glb/dlbuildingv3.glb';
-import Flag from './assets/glb/flagv3.glb';
+import Airplane from './assets/glb/airplaneAndBanner.glb';
 
 import axios from "axios";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
@@ -30,6 +30,19 @@ var mixers = [];
 var sunTheta;
 var THREEx = {};
 var t = 0;
+var raycaster = new THREE.Raycaster();
+
+var mouse = new THREE.Vector2();
+
+
+var ENTIRE_SCENE = 0, BLOOM_SCENE = 1;
+
+var bloomLayer = new THREE.Layers();
+bloomLayer.set( BLOOM_SCENE );
+var darkMaterial = new THREE.MeshBasicMaterial( { color: "black" } );
+var materials = {};
+
+
 
 /// Day night cycle ///
 THREEx.DayNight	= {}
@@ -63,7 +76,7 @@ THREEx.DayNight.SunLight	= function(){
 	
 	this.update	= function(sunAngle){
 		light.position.x = -3;
-		light.position.y = Math.sin(sunAngle) * 10;
+		light.position.y = Math.sin(sunAngle) * 20;
 		light.position.z = Math.cos(sunAngle) * 10;
 // console.log('Phase ', THREEx.DayNight.currentPhase(sunAngle))
 
@@ -81,7 +94,7 @@ THREEx.DayNight.SunLight	= function(){
 
 
 
-var MODELS = [BuildingGLB, PlaneGLB, DLBuildingGLB, Flag];
+var MODELS = [BuildingGLB, PlaneGLB, DLBuildingGLB, Airplane];
   
 
 const style = {
@@ -102,12 +115,14 @@ class App extends Component {
     this.startAnimationLoop = this.startAnimationLoop.bind(this);
     this.updateModel = this.updateModel.bind(this);
 
+    this.onDocumentMouseClick = this.onDocumentMouseClick.bind(this);
   };
   componentDidMount() {
     this.sceneSetup();
     this.load();
     // this.startAnimationLoop();
     window.addEventListener("resize", this.handleWindowResize);
+    window.addEventListener( 'click', this.onDocumentMouseClick, false );
   }
 
   componentWillUnmount() {
@@ -148,12 +163,12 @@ class App extends Component {
     this.renderer.setSize(width, height);
     // this.renderer.toneMapping = THREE.ReinhardToneMapping;
     // this.renderer.toneMappingExposure = Math.pow(1, 4.0);
-    this.renderer.setClearColor("#ffe4c4");
+    this.renderer.setClearColor("#120729");
 
     this.el.appendChild(this.renderer.domElement); // mount using React ref
 
     var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
-    var matStdFloor = new THREE.MeshStandardMaterial( { color:"#ffe9cf", roughness: 2, metalness: 0 } );
+    var matStdFloor = new THREE.MeshStandardMaterial( { color:"#9b7fa1", roughness: 0.4, metalness: 0 } );
     // var matStdFloor = new THREE.MeshPhongMaterial( { color:"#ffe19c" } );
     // node.material = new THREE.MeshPhongMaterial({
     //   color:"#060f2b",
@@ -165,6 +180,7 @@ class App extends Component {
 
     this.renderScene = new RenderPass( this.scene, this.camera )    
     this.composer = new EffectComposer( this.renderer );
+    this.finalComposer = new EffectComposer( this.renderer );
 
     this.par = new THREE.Group(); // init parent group for all objects in scene
 
@@ -172,15 +188,13 @@ class App extends Component {
     this.sunLight	= new THREEx.DayNight.SunLight()
     this.scene.add( this.sunLight.object3d )    
     
-    var hemiLight = new THREE.HemisphereLight( "#ffffff", "#ffffff", 0.1 );
-    hemiLight.position.set( 0, 20, 0 );
-    this.scene.add( hemiLight );
-
+    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.2 );    // this.scene.add( hemiLight );
+    this.scene.add(ambiLight)
 
   };
 
   load = () => {
-    var self = this;
+    var __this = this;
     const appContainer = document.getElementById("appContainer");
     // get container dimensions and use them for scene sizing
     const width = appContainer.clientWidth;
@@ -191,54 +205,37 @@ class App extends Component {
     loadModels();
     
     let setModelsInWorld = ()=> {
-        ///add building///
-        let buildingGroup = this.par.getObjectByName("/static/media/dlo3.5cb8f2a3.glb");
-        var building = buildingGroup.children[3];
-        var mainBox0 = building.children[0];
-        var mainBox1 = building.children[1];
-        this.circleWindow = building.children[2];
-    
-        var windowMesh = building.children[3];
-        windowMesh.material = new THREE.MeshBasicMaterial({
-            color:"#e0cc48",
-        });
-        this.scene.add(windowMesh)
     
         RectAreaLightUniformsLib.init();
-        const world = new THREE.Vector3();
-        var rectLight = new THREE.RectAreaLight( "#e0cc48", 3,  0.7, 4.3 );
-        var windowMeshPose = windowMesh.getWorldPosition(world).toArray();
-        rectLight.position.set(windowMeshPose[0], windowMeshPose[1], windowMeshPose[2]);
-        rectLight.rotateY(Math.PI/2)
-        this.scene.add( rectLight )
-        var rectLightMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( { color:"#e0cc48", side: THREE.BackSide } ) );
-        rectLightMesh.scale.x = rectLight.width;
-        rectLightMesh.scale.y = rectLight.height;
-        rectLight.add( rectLightMesh );
-
-        mainBox0.castShadow=true;
-        mainBox0.receiveShadow = true;
-        mainBox1.castShadow=true;
-        mainBox1.receiveShadow = true;
-        this.circleWindow.castShadow=true;
-        this.circleWindow.receiveShadow = true;
-        this.circleWindow.material = new THREE.MeshBasicMaterial({
-            color:"#e0cc48",
-        });
-    
-        mainBox0.material = new THREE.MeshPhongMaterial({
-            color:"#80252e",
-        });
-    
-    
-        this.scene.add(mainBox0)
-        this.scene.add(mainBox1)
-        this.scene.add(this.circleWindow)
-
         ///add plane///
-        this.planeGroup = this.par.getObjectByName("/static/media/airplane2.69ef2ffd.glb");
-        this.plane = this.planeGroup.children[2];
+        this.planeGroup = this.par.getObjectByName("/static/media/airplaneAndBanner.6dfad104.glb");
+        this.plane = this.planeGroup.getObjectByName("Plane")
+        this.banner = this.plane.getObjectByName("Banner")
+        var drawCanvas = document.createElement("CANVAS");
+        drawCanvas.width = 1800;
+        drawCanvas.height=1200;
+        var ctx = drawCanvas.getContext("2d");
+        ctx.font = "250px Quicksand";
+        ctx.fillStyle = "white";
+        ctx.textAlign="center";
+        // ctx.scale(1, -1); 
+        ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
+        ctx.fillText("Hello World this is a test", 1000, 1000);
+        ctx.textBaseline = "middle";
 
+        var canvaTexture=new THREE.CanvasTexture( drawCanvas );
+        canvaTexture.flipY=true;
+        canvaTexture.wrapS = THREE.RepeatWrapping;
+        canvaTexture.repeat.x = - 1;
+        canvaTexture.wrapS = 1;
+
+        this.banner.material	= new THREE.MeshStandardMaterial({
+          map	: canvaTexture,
+          side: THREE.DoubleSide,
+  
+        })
+    
+        
         this.propellor = this.planeGroup.children[3];
         this.mixer = new THREE.AnimationMixer( this.planeGroup );
         this.mixer.clipAction(this.planeGroup.animations[1]).play();
@@ -255,104 +252,84 @@ class App extends Component {
 
         this.scene.add(this.planeRotateGroup);
         this.planeRotateGroup.add(this.planeGroup);
-        // this.planeRotateGroup.add(this.propellor);
-
         this.planeRotateGroup.rotation.z=Math.PI/6;
         this.planeRotateGroup.castShadow=true;
 
         this.dlBuilding = this.par.getObjectByName("/static/media/dlbuildingv3.fb0f3294.glb");
-        var windows = this.dlBuilding.getObjectByName("Windows");
-        console.log("dlbuildinghcildren")
-        console.log(windows)
-        var frontWindows = windows.getObjectByName("FrontWindows");
-        var circleWindows = windows.getObjectByName("CircularWindows");
-        var backWindows = windows.getObjectByName("BackWindows");
-        var octagonWindows = windows.getObjectByName("OctagonalWindows");
-        var rightWindows = windows.getObjectByName("RightWindows");
-        var leftWindows = windows.getObjectByName("LeftWindows");
-            
-      
-        console.log(this.dlBuilding.children)
+        this.dlBuilding.position.set(0, 0.5, 0);
+        this.dlBuilding.traverse( function(node) {
+          if ( node instanceof THREE.Mesh ) {
+            node.material = new THREE.MeshStandardMaterial({
+              color:"#edb76f",
+              });
+            }
+
+        });
+        this.windows = this.dlBuilding.getObjectByName("Windows");
+        var frontWindows = this.windows.getObjectByName("FrontWindows");
+        // var circleWindows = windows.getObjectByName("CircularWindows");
+        // var backWindows = windows.getObjectByName("BackWindows");
+        // var octagonWindows = windows.getObjectByName("OctagonalWindows");
+        // var rightWindows = windows.getObjectByName("RightWindows");
+        // var leftWindows = windows.getObjectByName("LeftWindows");
+        var frontBottomRow = frontWindows.getObjectByName("BottomRow")
+        var frontMiddleRow = frontWindows.getObjectByName("MidRow")
+
 
         this.scene.add(this.dlBuilding)
 
 
-
         console.log( 'Loading Complete!');
-        // var bloomPass = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85, [windowMesh], self.scene, self.camera )
-        // bloomPass.threshold = 0.21;
-        // bloomPass.strength = 1.2;
-        // bloomPass.radius = 0.55;
-        // this.bloomPass2 = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85, [this.circleWindow], self.scene, self.camera )
-        // this.bloomPass2.threshold = 0.21;
-        // this.bloomPass2.strength = 1.2;
-        // this.bloomPass2.radius = 0.55;
         this.composer.setSize( width, height )
         this.composer.addPass( this.renderScene )
-        // this.composer.addPass( bloomPass )
-        self = this;
-        frontWindows.traverse( function( node ) {
+        this.finalComposer.setSize( width, height )
+
+        this.windows.traverse( function(node) {
           if ( node instanceof THREE.Mesh ) {
+            node.material = new THREE.MeshBasicMaterial({
+              color:"#e0cc48",
+              });
+            node.layers.toggle( BLOOM_SCENE );
 
-            // var rectLight = new THREE.RectAreaLight( "#e0cc48", 3,  0.7, 4.3 );
-            // var windowMeshPose = node.getWorldPosition(world).toArray();
-            // rectLight.position.set(windowMeshPose[0], windowMeshPose[1], windowMeshPose[2]);
-            // rectLight.rotateY(Math.PI/2)
-            // self.scene.add( rectLight )
-            // var rectLightMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( { color:"#e0cc48", side: THREE.BackSide } ) );
-            // rectLightMesh.scale.x = rectLight.width;
-            // rectLightMesh.scale.y = rectLight.height;
-            // rectLight.add( rectLightMesh );
+            }
 
-              // console.log(node.name)
-              node.material = new THREE.MeshBasicMaterial({
-                color:"#e0cc48",
-                });
+        });
 
-              if (node.name == "Window25" || node.name == "Window24" || node.name == "Window23" ) {
-                console.log(node)
-                node.material = new THREE.MeshPhongMaterial({
-                  color:"#060f2b",
-                 });
-                };
-              // var bloomPass85 = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85, [node], self.scene, self.camera )
-              // bloomPass85.threshold = 0.21;
-              // bloomPass85.strength = 1.2;
-              // bloomPass85.radius = 0.55;
-              // self.composer.addPass( bloomPass85 )
-
-              // }
+        this.windows.traverse( function( node ) {
+          if ( node instanceof THREE.Mesh ) {
+              if (node.name === "Window173" || node.name === "Window104") {
+                  var rectLight = new THREE.RectAreaLight( "#e0cc48", 5,  2, 2 );
+                  rectLight.translateZ(0.5);
+                  rectLight.rotateY(Math.PI/2)
+                  node.add( rectLight )
+                  // var rectLightMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( { color:"#e0cc48", side: THREE.FrontSide } ) );
+                  // rectLightMesh.scale.x = rectLight.width;
+                  // rectLightMesh.scale.y = rectLight.height;
+                  // rectLight.add( rectLightMesh );
+              } else if(node.name ==="Window05" || node.name==="Window06" || node.name ==="Window144"|| node.name ==="Window145" || node.name ==="Window146" || node.name ==="Window147" || node.name ==="Window132" || node.name ==="Window133" || node.name ==="Window134" || node.name ==="Window135") {
+                node.material = new THREE.MeshBasicMaterial({
+                  color:"#060f2b", // window OFF
+                  });
+              }
           }
-      } );
+        });
+        // frontMiddleRow.traverse( function( node ) {
+        //   if ( node instanceof THREE.Mesh ) {
+        //     if (node.name ==="Window05" || node.name==="Window06" || node.name ==="Window144"|| node.name ==="Window145" || node.name ==="Window146" || node.name ==="Window147" || node.name ==="Window132" || node.name ==="Window133" || node.name ==="Window134" || node.name ==="Window135") {
+        //         node.material = new THREE.MeshBasicMaterial({
+        //           color:"#060f2b", // window OFF
+        //           });
+        //       }
+        //   }
+        // });
+
       // to make the bloom computationally less expensive, let's apply one bloom step, and exclude the things we DON"T want to bloom!
       var bloomPass85 = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85)
       bloomPass85.threshold = 0.7;
-      bloomPass85.strength = 1.2;
+      bloomPass85.strength = 0.9;
       bloomPass85.radius = 0.55;
-      self.composer.addPass( bloomPass85 )
-
-            /// todo: make into function, fix blurry text, test with animation
-      var drawCanvas = document.createElement("CANVAS");
-      drawCanvas.width = 1800;
-      drawCanvas.height=1200;
-      var ctx = drawCanvas.getContext("2d");
-      ctx.font = "100px Arial";
-      ctx.fillStyle = "white";
-
-      ctx.fillText("Hello World", 100, 100);
-      let blackFlag = this.par.getObjectByName("/static/media/flagv3.60c4954c.glb");
-      let actualFlag = blackFlag.getObjectByName("Flag(TaylorGittings)-01");
-      actualFlag.position.set(10, 10, 10)
-      actualFlag.material	= new THREE.MeshStandardMaterial({
-        map	: new THREE.CanvasTexture( drawCanvas )
-
-      })
-
-      this.scene.add(actualFlag)
-      // var material	= new THREE.MeshBasicMaterial({
-      //   map	: dynamicTexture.texture
-      // })
-
+      this.finalComposer.addPass( this.renderScene )
+      this.finalComposer.addPass( bloomPass85 )
 
         this.startAnimationLoop()
       
@@ -365,17 +342,17 @@ class App extends Component {
       loader.setDRACOLoader( dracoLoader );
 
       loader.load( model, function ( gltf ) {
-        self.model=gltf.scene;
+        __this.model=gltf.scene;
         console.log('model')
         console.log(model)
         console.log('anim')
         console.log(gltf.animations)
-        self.model.name = model;
-        self.model.animations = gltf.animations;
-        self.par.add(self.model)
+        __this.model.name = model;
+        __this.model.animations = gltf.animations;
+        __this.par.add(__this.model)
 
         // Enable Shadows
-        self.model.traverse( function ( object ) {
+        __this.model.traverse( function ( object ) {
           if ( object.isMesh ) {
             object.castShadow = true;
             object.receiveShadow = true;
@@ -406,11 +383,8 @@ class App extends Component {
     stats.update();
     var delta = clock.getDelta();
 
-
-
-    this.mixer.update( delta ); // propellor
-    this.mixer2.update( delta ); // plane bob
-
+    // this.mixer.update( delta ); // propellor
+    // this.mixer2.update( delta ); // plane bob
 
     var d = new Date();
     var timeMins= d.getHours()*60+d.getMinutes();
@@ -423,14 +397,18 @@ class App extends Component {
     if (Math.abs(t-2*Math.PI) < 0.01) {
       t = 0;
     }
-    if (this.planeRotateGroup !== undefined) {
-      this.planeRotateGroup.position.set(5*Math.cos(t), 9, 5*Math.sin(t));
-      this.planeRotateGroup.rotation.y=-t;
-    }
+    // if (this.planeRotateGroup !== undefined) {
+    //   this.planeRotateGroup.position.set(30*Math.cos(t)-15, 20, 30*Math.sin(t)-15);
+    //   this.planeRotateGroup.rotation.y=-t;
+    // }
     this.sunLight.update(sunTheta);
     this.updateModel(timeMins);
-    this.composer.render();  
+    this.scene.traverse( this.darkenNonBloomed );
+    // this.composer.render();  
+    this.scene.traverse( this.restoreMaterial );
 
+    // this.composer.render();  
+    this.finalComposer.render();
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
@@ -450,11 +428,11 @@ class App extends Component {
             var test = res.data;
             var rbenefoOnline = test.find(x => x.real_name === 'rbenefo').online;
             if (rbenefoOnline === 1){
-              __this.bloomPass2.strength = 1.2;
-              __this.circleWindow.material.color.setHex( 0xe0cc48);
+              // __this.bloomPass2.strength = 1.2;
+              // __this.circleWindow.material.color.setHex( 0xe0cc48);
             } else {
-              __this.bloomPass2.strength = 0.1;
-              __this.circleWindow.material.color.setHex( 0x18072e);
+              // __this.bloomPass2.strength = 0.1;
+              // __this.circleWindow.material.color.setHex( 0x18072e);
             }
         }).catch(function (error) {
           console.log("Axios error:")
@@ -479,20 +457,59 @@ class App extends Component {
         let relevantPresence = res.data.presenceData[relevantIndex];
         let relevantActivity = res.data.activityMetricData[relevantIndex];
         if (relevantPresence[2] === 1){
-          __this.bloomPass2.strength = 1.2;
-          __this.circleWindow.material.color.setHex( 0xe0cc48 );
+          // __this.bloomPass2.strength = 1.2;
+          // __this.circleWindow.material.color.setHex( 0xe0cc48 );
         } else {
 
-          __this.bloomPass2.strength = 0.1;
-          __this.circleWindow.material.color.setHex( 0x18072e );
+          // __this.bloomPass2.strength = 0.1;
+          // __this.circleWindow.material.color.setHex( 0x18072e );
         }
       };
       });
-  
+    }
+  }
+
+  onDocumentMouseClick( event ) {
+
+    event.preventDefault();
+
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    raycaster.setFromCamera( mouse, this.camera );
+    var intersects = raycaster.intersectObjects( this.scene.children, true );
+    if ( intersects.length > 0 ) {
+      var object = intersects[ 0 ].object;
+      if (this.windows.getObjectByName(object.name)) {
+          console.log("window name:")
+          console.log(object)
+          // object.material.color.setHex(0xff9b4f);
+      }
+    }
+
+  }
+  darkenNonBloomed( obj ) {
+
+    if ( obj.isMesh && bloomLayer.test( obj.layers ) === false ) {
+
+      materials[ obj.uuid ] = obj.material;
+      obj.material = darkMaterial;
 
     }
 
   }
+
+  restoreMaterial( obj ) {
+
+    if ( materials[ obj.uuid ] ) {
+
+      obj.material = materials[ obj.uuid ];
+      delete materials[ obj.uuid ];
+
+    }
+
+  }
+
+
   handleWindowResize = () => {
     const width = this.el.clientWidth;
     const height = this.el.clientHeight;
