@@ -7,7 +7,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import PlaneGLB from './assets/glb/airplanev2.glb';
-import DLBuildingGLB from './assets/glb/dlbuildingv3.glb';
+import DLBuildingGLB from './assets/glb/dlbuilding.glb';
 
 import axios from "axios";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
@@ -204,9 +204,8 @@ class App extends Component {
     const height = appContainer.clientHeight;
     var numLoadedModels = 0; // init local vars
     var dracoLoader = new DRACOLoader(); // prep loader
+    dracoLoader.setDecoderPath( '/draco/gltf/' );
 
-
-    dracoLoader.setDecoderPath( 'three/examples/js/libs/draco/gltf/' );
     loadModels(); // execute load models
     
     let setModelsInWorld = ()=> {
@@ -256,7 +255,7 @@ class App extends Component {
         ///END ADD PLANE///
 
         ///ADD BUILDING///
-        const dlBuilding = this.par.getObjectByName("/static/media/dlbuildingv3.fb0f3294.glb");
+        const dlBuilding = this.par.getObjectByName("/static/media/dlbuilding.e2efb9e7.glb");
         dlBuilding.position.set(0, 0.5, 0);
         dlBuilding.traverse( function(node) {
           if ( node instanceof THREE.Mesh ) {
@@ -264,7 +263,6 @@ class App extends Component {
             //   color:"#edb76f",
             //   });
             }
-
         });
         this.windows = dlBuilding.getObjectByName("Windows");
         this.scene.add(dlBuilding)
@@ -386,6 +384,8 @@ class App extends Component {
     }
     this.sunLight.update(sunTheta);
     this.updateModel(timeMins);
+    this.scene.traverse( this.darkenNonBloomed );
+    this.scene.traverse( this.restoreMaterial );
     this.finalComposer.render();
 
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
