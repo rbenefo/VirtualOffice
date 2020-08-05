@@ -33,6 +33,7 @@ var t = 0;
 var raycaster = new THREE.Raycaster();
 
 var mouse = new THREE.Vector2();
+var intersected;
 
 
 var ENTIRE_SCENE = 0, BLOOM_SCENE = 1;
@@ -115,14 +116,14 @@ class App extends Component {
     this.startAnimationLoop = this.startAnimationLoop.bind(this);
     this.updateModel = this.updateModel.bind(this);
 
-    this.onDocumentMouseClick = this.onDocumentMouseClick.bind(this);
+    this.onDocumentMouseOver = this.onDocumentMouseOver.bind(this);
   };
   componentDidMount() {
     this.sceneSetup();
     this.load();
     // this.startAnimationLoop();
     window.addEventListener("resize", this.handleWindowResize);
-    window.addEventListener( 'click', this.onDocumentMouseClick, false );
+    window.addEventListener( 'mousemove', this.onDocumentMouseOver );
   }
 
   componentWillUnmount() {
@@ -210,7 +211,8 @@ class App extends Component {
         ///add plane///
         this.planeGroup = this.par.getObjectByName("/static/media/airplaneAndBanner.6dfad104.glb");
         this.plane = this.planeGroup.getObjectByName("Plane")
-        this.banner = this.plane.getObjectByName("Banner")
+        this.banner = this.plane.getObjectByName("Banner");
+        console.log(this.plane)
         var drawCanvas = document.createElement("CANVAS");
         drawCanvas.width = 1800;
         drawCanvas.height=1200;
@@ -227,7 +229,6 @@ class App extends Component {
         canvaTexture.flipY=true;
         canvaTexture.wrapS = THREE.RepeatWrapping;
         canvaTexture.repeat.x = - 1;
-        canvaTexture.wrapS = 1;
 
         this.banner.material	= new THREE.MeshStandardMaterial({
           map	: canvaTexture,
@@ -259,9 +260,9 @@ class App extends Component {
         this.dlBuilding.position.set(0, 0.5, 0);
         this.dlBuilding.traverse( function(node) {
           if ( node instanceof THREE.Mesh ) {
-            node.material = new THREE.MeshStandardMaterial({
-              color:"#edb76f",
-              });
+            // node.material = new THREE.MeshStandardMaterial({
+            //   color:"#edb76f",
+            //   });
             }
 
         });
@@ -287,7 +288,7 @@ class App extends Component {
         this.windows.traverse( function(node) {
           if ( node instanceof THREE.Mesh ) {
             node.material = new THREE.MeshBasicMaterial({
-              color:"#e0cc48",
+              color:"#e0cc48", // window ON
               });
             node.layers.toggle( BLOOM_SCENE );
 
@@ -383,32 +384,29 @@ class App extends Component {
     stats.update();
     var delta = clock.getDelta();
 
-    // this.mixer.update( delta ); // propellor
-    // this.mixer2.update( delta ); // plane bob
+    this.mixer.update( delta ); // propellor
+    this.mixer2.update( delta ); // plane bob
 
     var d = new Date();
     var timeMins= d.getHours()*60+d.getMinutes();
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
-      sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
+      // sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
+      sunTheta = Math.PI/2;
     }
     t += 0.01;
     if (Math.abs(t-2*Math.PI) < 0.01) {
       t = 0;
     }
-    // if (this.planeRotateGroup !== undefined) {
-    //   this.planeRotateGroup.position.set(30*Math.cos(t)-15, 20, 30*Math.sin(t)-15);
-    //   this.planeRotateGroup.rotation.y=-t;
-    // }
+    if (this.planeRotateGroup !== undefined) {
+      this.planeRotateGroup.position.set(30*Math.cos(t)-15, 20, 30*Math.sin(t)-15);
+      this.planeRotateGroup.rotation.y=-t;
+    }
     this.sunLight.update(sunTheta);
     this.updateModel(timeMins);
-    this.scene.traverse( this.darkenNonBloomed );
-    // this.composer.render();  
-    this.scene.traverse( this.restoreMaterial );
-
-    // this.composer.render();  
     this.finalComposer.render();
+
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
@@ -469,8 +467,7 @@ class App extends Component {
     }
   }
 
-  onDocumentMouseClick( event ) {
-
+  onDocumentMouseOver( event ) {
     event.preventDefault();
 
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -479,11 +476,24 @@ class App extends Component {
     var intersects = raycaster.intersectObjects( this.scene.children, true );
     if ( intersects.length > 0 ) {
       var object = intersects[ 0 ].object;
-      if (this.windows.getObjectByName(object.name)) {
-          console.log("window name:")
-          console.log(object)
-          // object.material.color.setHex(0xff9b4f);
-      }
+      if (this.windows) {
+        if ((this.windows.getObjectByName(object.name) !=void(0)) && (this.windows.getObjectByName(object.name).type !="RectAreaLight")) {
+            if (intersected !== object) {
+            intersected = object;
+            console.log("window name:")
+            console.log(this.windows.getObjectByName(object.name));
+            if (intersected) intersected.material.color.setHex( intersected.currentHex );
+            intersected.currentHex = intersected.material.color.getHex();
+						intersected.material.color.setHex( 0xff9b4f ); // fix with https://github.com/mrdoob/three.js/blob/master/examples/webgl_interactive_cubes.html
+
+            // object.material.emissive.setHex(0xff9b4f);
+            // setTimeout(function() {
+            //   object.material.color.setHex( 0xff0000 )
+            // }, 500);
+          
+          }
+        }
+    }
     }
 
   }
