@@ -36,8 +36,6 @@ export default class Timeline extends React.Component {
             setCursor: true,
             onDragStart: function (element, x, y) {
                 self.props.timelineActive(1);
-
-
                 // console.log(self.props.timelineActive)
                 // labelX.innerHTML = x;
             },
@@ -49,6 +47,8 @@ export default class Timeline extends React.Component {
             },
             onDragEnd: function(){
                 self.props.timelineActive(0);
+
+
                 // element.style.left= "700px";
                 // console.log(self.props.timelineActive)
 

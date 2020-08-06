@@ -62,6 +62,7 @@ var appContainer;
 var data;
 let timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
 var intersects, windowPopUp, object;
+var timelineToggle = 0;
 /// End Initialize Constants ///
 
 
@@ -118,22 +119,19 @@ const vertexScript =
 void main() {
 
     vUv = uv;
-
     gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-
 }
 `
 
 const fragmentScript = 
-`			uniform sampler2D baseTexture;
+`			
+uniform sampler2D baseTexture;
 uniform sampler2D bloomTexture;
 
 varying vec2 vUv;
 
 void main() {
-
   gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( bloomTexture, vUv ) );
-
 }
 `
 /// main component/// 
@@ -143,7 +141,6 @@ class App extends Component {
     this.myRef = React.createRef();
     this.state = {
       time:"",
-      timelineActive:0,
     };
     this.load = this.load.bind(this);
     this.startAnimationLoop = this.startAnimationLoop.bind(this);
@@ -151,15 +148,6 @@ class App extends Component {
     this.onDocumentMouseOver = this.onDocumentMouseOver.bind(this);
   };
   componentDidMount() {
-    // const vertexScript = document.createElement("script");
-    // vertexScript.src = "/path/to/resource.js";
-    // vertexScript.async = true;
-    // document.body.appendChild(vertexScript);
-    // const fragmentScript = document.createElement("script");
-    // fragmentScript.src = "/path/to/resource.js";
-    // fragmentScript.async = true;
-    // document.body.appendChild(fragmentScript);
-
     this.sceneSetup();
     this.load();
     window.addEventListener("resize", this.handleWindowResize);
@@ -172,6 +160,36 @@ class App extends Component {
 
     window.cancelAnimationFrame(this.requestID);
     this.controls.dispose();
+  }
+  componentDidUpdate(prevProps, prevState) {
+    if ((prevProps.timelineActive !== this.props.timelineActive) &&(this.props.timelineActive === 1)) {
+      axios.get('http://localhost:8081/slackRoute/getBulkData', {
+      }).then(function (res) { //todo: have this happen only when DragStart begins, so we're not shuttling large amounts of data so rapidly
+      if (res.data.presenceData === undefined || res.data.presenceData.length === 0) {
+          // array empty or does not exist
+      } else {
+        console.log(res)
+        timeArr = (res.data.presenceData.map(function(value,index) { 
+                    return value[res.data.presenceData[0].length-1]; 
+                  }));
+        goal = __this.props.timelineTime;
+        closest = timeArr.reduce(function(prev, curr) {
+          return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
+        });        
+        relevantIndex = (timeArr.indexOf(closest));
+        relevantPresence = res.data.presenceData[relevantIndex];
+        relevantActivity = res.data.activityMetricData[relevantIndex];
+        if (relevantPresence[2] === 1){
+          // __this.bloomPass2.strength = 1.2;
+          // __this.circleWindow.material.color.setHex( 0xe0cc48 );
+        } else {
+
+          // __this.bloomPass2.strength = 0.1;
+          // __this.circleWindow.material.color.setHex( 0x18072e );
+        }
+      };
+      });
+    } 
   }
 
   sceneSetup = () => {
@@ -198,9 +216,11 @@ class App extends Component {
 
     this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false}); // init renderer
     this.renderer.setSize(width, height);
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
-    
+    // this.renderer.shadowMap.enabled = true;
+    // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
+    this.renderer.capabilities.maxTextureSize=1;
+    console.log(this.renderer.capabilities)
+
     
     // renderer.autoClear = false;
     this.renderer.setSize(width, height);
@@ -210,7 +230,6 @@ class App extends Component {
     this.el.appendChild(this.renderer.domElement); // mount using React ref
 
     this.renderScene = new RenderPass( this.scene, this.camera )    
-    this.composer = new EffectComposer( this.renderer );
     this.bloomComposer = new EffectComposer( this.renderer );
 
     this.par = new THREE.Group(); // init parent group for all objects in scene
@@ -218,7 +237,7 @@ class App extends Component {
 
     /// Floor ///
     var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
-    var floorTexture = THREE.ImageUtils.loadTexture(FloorTexture);
+    var floorTexture = new THREE.TextureLoader().load(FloorTexture);
     var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.2, metalness: 0 } );
     var floor = new THREE.Mesh( geoFloor, matStdFloor );
     floor.receiveShadow = true;
@@ -300,31 +319,21 @@ class App extends Component {
         ///ADD BUILDING///
         const dlBuilding = this.par.getObjectByName("/static/media/dlbuilding.e2efb9e7.glb");
         dlBuilding.position.set(0, 0.5, 0);
-        dlBuilding.traverse( function(node) {
-          if ( node instanceof THREE.Mesh ) {
-            // node.material = new THREE.MeshStandardMaterial({
-            //   color:"#edb76f",
-            //   });
-            }
-        });
         this.windows = dlBuilding.getObjectByName("Windows");
         this.scene.add(dlBuilding)
         ///END ADD BUILDING///
         console.log( 'Loading Complete!');
 
         // GLOW WINDOWS //
+        RectAreaLightUniformsLib.init();
+
         this.windows.traverse( function(node) {
           if ( node instanceof THREE.Mesh ) {
             node.material = new THREE.MeshBasicMaterial({
               color:"#e0cc48", // window ON
               });
             node.layers.toggle( BLOOM_SCENE );
-            }
-        });
-        RectAreaLightUniformsLib.init();
-        this.windows.traverse( function( node ) {
-          if ( node instanceof THREE.Mesh ) {
-              if (node.name === "Window173" || node.name === "Window104") {
+            if (node.name === "Window173" || node.name === "Window104") {
                   var rectLight = new THREE.RectAreaLight( "#e0cc48", 5,  2, 2 );
                   rectLight.translateZ(0.5);
                   rectLight.rotateY(Math.PI/2)
@@ -333,22 +342,20 @@ class App extends Component {
                   // rectLightMesh.scale.x = rectLight.width;
                   // rectLightMesh.scale.y = rectLight.height;
                   // rectLight.add( rectLightMesh );
-              } else if(windowsPermaOff.includes(node.name)) {
+            } else if(windowsPermaOff.includes(node.name)) {
                 node.material = new THREE.MeshBasicMaterial({
                   color:"#060f2b", // window OFF
                   });
-              }
-          }
+            };
+
+          };
+
         });
         // END GLOW WINDOWS //
 
-      // to make the bloom computationally less expensive, let's apply one bloom step, and exclude the things we DON"T want to bloom!
-      this.composer.setSize( width, height )
-      this.composer.addPass( this.renderScene )
-
       var bloomPass85 = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85)
       bloomPass85.threshold = 0.7;
-      bloomPass85.strength = 0.9;
+      bloomPass85.strength = 0.7;
       bloomPass85.radius = 0.55;
 
       this.bloomComposer.setSize( width, height )
@@ -434,8 +441,8 @@ class App extends Component {
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
-      // sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
-      sunTheta = Math.PI/2;
+      sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
+      // sunTheta = Math.PI/2;
     }
     t += 0.01;
     if (Math.abs(t-2*Math.PI) < 0.01) {
@@ -449,6 +456,7 @@ class App extends Component {
     this.updateModel(timeMins);
     this.scene.traverse( this.darkenNonBloomed );
     this.bloomComposer.render();
+
     this.scene.traverse( this.restoreMaterial );
     this.finalComposer.render();
 
@@ -459,10 +467,7 @@ class App extends Component {
     timeCounter += 1;
 
     __this = this;
-
-    if (this.props.timelineActive  !== 1) { 
-      // console.log(timeCounter)
-
+    if (this.props.timelineActive !== 1){ 
       if (timeCounter >= 600) {
         timeCounter =0;
         axios.get('http://localhost:8081/slackRoute/getPresence', {
@@ -483,32 +488,7 @@ class App extends Component {
       });
       }
     } else {      
-      axios.get('http://localhost:8081/slackRoute/getBulkData', {
-      }).then(function (res) { //todo: have this happen only when DragStart begins, so we're not shuttling large amounts of data so rapidly
-      if (res.data.presenceData === undefined || res.data.presenceData.length === 0) {
-          // array empty or does not exist
-      } else {
-      
-        timeArr = (res.data.presenceData.map(function(value,index) { 
-                    return value[res.data.presenceData[0].length-1]; 
-                  }));
-        goal = __this.props.timelineTime;
-        closest = timeArr.reduce(function(prev, curr) {
-          return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
-        });        
-        relevantIndex = (timeArr.indexOf(closest));
-        relevantPresence = res.data.presenceData[relevantIndex];
-        relevantActivity = res.data.activityMetricData[relevantIndex];
-        if (relevantPresence[2] === 1){
-          // __this.bloomPass2.strength = 1.2;
-          // __this.circleWindow.material.color.setHex( 0xe0cc48 );
-        } else {
 
-          // __this.bloomPass2.strength = 0.1;
-          // __this.circleWindow.material.color.setHex( 0x18072e );
-        }
-      };
-      });
     }
   }
 
@@ -601,6 +581,7 @@ class Container extends React.Component {
       timelineActive:0,
     };
     this.isTimelineActive = this.isTimelineActive.bind(this);
+
     this.recordTimelineTime = this.recordTimelineTime.bind(this);
 
   };  
@@ -620,7 +601,7 @@ class Container extends React.Component {
         <div id = "appContainer">
         <App timelineActive ={this.state.timelineActive} timelineTime = {this.state.time}/>
         </div>
-        <Timeline timelineActive={this.isTimelineActive} timelineTime = {this.recordTimelineTime}/>
+        <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
       </div>
     );
   }
