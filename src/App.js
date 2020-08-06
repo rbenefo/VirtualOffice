@@ -256,8 +256,6 @@ class App extends Component {
   };
 
 
-
-
   load = () => {
     __this = this; //access "this inside functions
     appContainer = document.getElementById("appContainer");
