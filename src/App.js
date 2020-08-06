@@ -16,7 +16,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
-import FloorTexture from './assets/images/FloorGradient.jpg';
+import FloorTexture from './assets/images/FloorGradient.png';
 import About from './components/About';
 import Timeline from './components/Timeline'
 
@@ -301,9 +301,13 @@ class App extends Component {
         })
     
         this.mixer = new THREE.AnimationMixer( planeGroup );
-        this.mixer.clipAction(planeGroup.animations[1]).play();
-        this.mixer2 = new THREE.AnimationMixer( planeGroup );
-			  this.mixer2.clipAction(planeGroup.animations[0]).play();
+        // this.mixer.clipAction(planeGroup.animations[1]).play();
+        var planeClips = planeGroup.animations;
+        planeClips.forEach(function(clip) {
+          __this.mixer.clipAction( clip ).play();
+        })
+        // this.mixer2 = new THREE.AnimationMixer( planeGroup );
+			  // this.mixer2.clipAction(planeGroup.animations[0]).play();
         var box = new THREE.Box3().setFromObject( planeGroup );
         // Reset mesh position:
         box.getCenter( planeGroup.position);
@@ -433,8 +437,7 @@ class App extends Component {
     stats.update();
     delta = clock.getDelta();
 
-    this.mixer.update( delta ); // propellor
-    this.mixer2.update( delta ); // plane bob
+    this.mixer.update( delta ); // plane animation
 
     d = new Date();
     timeMins= d.getHours()*60+d.getMinutes();
