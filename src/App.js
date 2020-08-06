@@ -4,6 +4,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import PlaneGLB from './assets/glb/airplanev2.glb';
@@ -14,6 +16,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
+import FloorTexture from './assets/images/FloorGradient.jpg';
 import About from './components/About';
 import Timeline from './components/Timeline'
 
@@ -52,6 +55,13 @@ var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
 const style = {
   height: window.innerHeight, // we can control scene size by setting container dimensions
 };
+
+var delta, d, timeMins;
+var __this;
+var appContainer;
+var data;
+let timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
+var intersects, windowPopUp, object;
 /// End Initialize Constants ///
 
 
@@ -87,7 +97,7 @@ THREEx.DayNight.SunLight	= function(){
 	this.update	= function(sunAngle){
 		light.position.x = -3;
 		light.position.y = Math.sin(sunAngle) * 20;
-		light.position.z = Math.cos(sunAngle) * 10;
+		light.position.z = Math.cos(sunAngle) * 30;
 		var phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
 			light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
@@ -102,7 +112,30 @@ THREEx.DayNight.SunLight	= function(){
 /// End Day night cycle///
 
 
+const vertexScript = 
+`varying vec2 vUv;
 
+void main() {
+
+    vUv = uv;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+}
+`
+
+const fragmentScript = 
+`			uniform sampler2D baseTexture;
+uniform sampler2D bloomTexture;
+
+varying vec2 vUv;
+
+void main() {
+
+  gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( bloomTexture, vUv ) );
+
+}
+`
 /// main component/// 
 class App extends Component {
   constructor(props) {
@@ -118,6 +151,15 @@ class App extends Component {
     this.onDocumentMouseOver = this.onDocumentMouseOver.bind(this);
   };
   componentDidMount() {
+    // const vertexScript = document.createElement("script");
+    // vertexScript.src = "/path/to/resource.js";
+    // vertexScript.async = true;
+    // document.body.appendChild(vertexScript);
+    // const fragmentScript = document.createElement("script");
+    // fragmentScript.src = "/path/to/resource.js";
+    // fragmentScript.async = true;
+    // document.body.appendChild(fragmentScript);
+
     this.sceneSetup();
     this.load();
     window.addEventListener("resize", this.handleWindowResize);
@@ -133,7 +175,7 @@ class App extends Component {
   }
 
   sceneSetup = () => {
-    const appContainer = document.getElementById("appContainer");
+    appContainer = document.getElementById("appContainer");
     appContainer.appendChild( stats.dom );
 
     // get container dimensions and use them for scene sizing
@@ -169,17 +211,18 @@ class App extends Component {
 
     this.renderScene = new RenderPass( this.scene, this.camera )    
     this.composer = new EffectComposer( this.renderer );
-    this.finalComposer = new EffectComposer( this.renderer );
+    this.bloomComposer = new EffectComposer( this.renderer );
 
     this.par = new THREE.Group(); // init parent group for all objects in scene
 
 
     /// Floor ///
-    // var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
-    // var matStdFloor = new THREE.MeshStandardMaterial( { color:"#9b7fa1", roughness: 0.4, metalness: 0 } );
-    // var floor = new THREE.Mesh( geoFloor, matStdFloor );
-    // floor.receiveShadow = true;
-    // this.scene.add( floor );
+    var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
+    var floorTexture = THREE.ImageUtils.loadTexture(FloorTexture);
+    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.2, metalness: 0 } );
+    var floor = new THREE.Mesh( geoFloor, matStdFloor );
+    floor.receiveShadow = true;
+    this.scene.add( floor );
     /// End Floor /// 
 
 
@@ -187,7 +230,7 @@ class App extends Component {
     this.sunLight	= new THREEx.DayNight.SunLight()
     this.scene.add( this.sunLight.object3d )    
     
-    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.2 );    // this.scene.add( hemiLight );
+    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.05 );    // this.scene.add( hemiLight );
     this.scene.add(ambiLight)
     /// end insert lights///
 
@@ -197,8 +240,8 @@ class App extends Component {
 
 
   load = () => {
-    var __this = this; //access "this inside functions
-    const appContainer = document.getElementById("appContainer");
+    __this = this; //access "this inside functions
+    appContainer = document.getElementById("appContainer");
     // get container dimensions and use them for scene sizing
     const width = appContainer.clientWidth;
     const height = appContainer.clientHeight;
@@ -302,14 +345,34 @@ class App extends Component {
       // to make the bloom computationally less expensive, let's apply one bloom step, and exclude the things we DON"T want to bloom!
       this.composer.setSize( width, height )
       this.composer.addPass( this.renderScene )
-      this.finalComposer.setSize( width, height )
 
       var bloomPass85 = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85)
       bloomPass85.threshold = 0.7;
       bloomPass85.strength = 0.9;
       bloomPass85.radius = 0.55;
-      this.finalComposer.addPass( this.renderScene )
-      this.finalComposer.addPass( bloomPass85 )
+
+      this.bloomComposer.setSize( width, height )
+      this.bloomComposer.renderToScreen = false;
+			this.bloomComposer.addPass( this.renderScene );
+      this.bloomComposer.addPass( bloomPass85 );
+      
+
+      var finalPass = new ShaderPass(
+				new THREE.ShaderMaterial( {
+					uniforms: {
+						baseTexture: { value: null },
+						bloomTexture: { value: this.bloomComposer.renderTarget2.texture }
+					},
+					vertexShader: vertexScript,
+					fragmentShader: fragmentScript,
+					defines: {}
+				} ), "baseTexture"
+			);
+			finalPass.needsSwap = true;
+
+			this.finalComposer = new EffectComposer( this.renderer );
+			this.finalComposer.addPass( this.renderScene );
+			this.finalComposer.addPass( finalPass );
 
       this.startAnimationLoop()
       
@@ -361,13 +424,13 @@ class App extends Component {
   startAnimationLoop = () => {
     this.controls.update();
     stats.update();
-    var delta = clock.getDelta();
+    delta = clock.getDelta();
 
     this.mixer.update( delta ); // propellor
     this.mixer2.update( delta ); // plane bob
 
-    var d = new Date();
-    var timeMins= d.getHours()*60+d.getMinutes();
+    d = new Date();
+    timeMins= d.getHours()*60+d.getMinutes();
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
@@ -379,12 +442,13 @@ class App extends Component {
       t = 0;
     }
     if (this.planeRotateGroup !== undefined) {
-      this.planeRotateGroup.position.set(30*Math.cos(t)-15, 20, 30*Math.sin(t)-15);
+      this.planeRotateGroup.position.set(20*Math.cos(t)-10, 20, 20*Math.sin(t)-10);
       this.planeRotateGroup.rotation.y=-t;
     }
     this.sunLight.update(sunTheta);
     this.updateModel(timeMins);
     this.scene.traverse( this.darkenNonBloomed );
+    this.bloomComposer.render();
     this.scene.traverse( this.restoreMaterial );
     this.finalComposer.render();
 
@@ -394,7 +458,7 @@ class App extends Component {
   updateModel(timeMins) {
     timeCounter += 1;
 
-    var __this = this;
+    __this = this;
 
     if (this.props.timelineActive  !== 1) { 
       // console.log(timeCounter)
@@ -404,15 +468,15 @@ class App extends Component {
         axios.get('http://localhost:8081/slackRoute/getPresence', {
         }).then(function (res) {
           // console.log(res)
-            var test = res.data;
-            var rbenefoOnline = test.find(x => x.real_name === 'rbenefo').online;
-            if (rbenefoOnline === 1){
-              // __this.bloomPass2.strength = 1.2;
-              // __this.circleWindow.material.color.setHex( 0xe0cc48);
-            } else {
-              // __this.bloomPass2.strength = 0.1;
-              // __this.circleWindow.material.color.setHex( 0x18072e);
-            }
+            data = res.data;
+            // var rbenefoOnline = data.find(x => x.real_name === 'rbenefo').online;
+            // if (rbenefoOnline === 1){
+            //   // __this.bloomPass2.strength = 1.2;
+            //   // __this.circleWindow.material.color.setHex( 0xe0cc48);
+            // } else {
+            //   // __this.bloomPass2.strength = 0.1;
+            //   // __this.circleWindow.material.color.setHex( 0x18072e);
+            // }
         }).catch(function (error) {
           console.log("Axios error:")
           console.log(error)
@@ -425,16 +489,16 @@ class App extends Component {
           // array empty or does not exist
       } else {
       
-        let timeArr = (res.data.presenceData.map(function(value,index) { 
+        timeArr = (res.data.presenceData.map(function(value,index) { 
                     return value[res.data.presenceData[0].length-1]; 
                   }));
-        let goal = __this.props.timelineTime;
-        let closest = timeArr.reduce(function(prev, curr) {
+        goal = __this.props.timelineTime;
+        closest = timeArr.reduce(function(prev, curr) {
           return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
         });        
-        let relevantIndex = (timeArr.indexOf(closest));
-        let relevantPresence = res.data.presenceData[relevantIndex];
-        let relevantActivity = res.data.activityMetricData[relevantIndex];
+        relevantIndex = (timeArr.indexOf(closest));
+        relevantPresence = res.data.presenceData[relevantIndex];
+        relevantActivity = res.data.activityMetricData[relevantIndex];
         if (relevantPresence[2] === 1){
           // __this.bloomPass2.strength = 1.2;
           // __this.circleWindow.material.color.setHex( 0xe0cc48 );
@@ -450,22 +514,19 @@ class App extends Component {
 
   onDocumentMouseOver( event ) {
     event.preventDefault();
-    const appContainer = document.getElementById("appContainer");
+    appContainer = document.getElementById("appContainer");
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
     raycaster.setFromCamera( mouse, this.camera );
-    var intersects = raycaster.intersectObjects( this.scene.children, true );
-    var windowPopUp = document.createElement("div");
+    intersects = raycaster.intersectObjects( this.scene.children, true );
+    windowPopUp = document.createElement("div");
     windowPopUp.id = "windowPopup"
 
     if ( intersects.length > 0 ) {
-      var object = intersects[ 0 ].object;
+      object = intersects[ 0 ].object;
       if (this.windows) {
         if ((this.windows.getObjectByName(object.name) !==void(0)) && (this.windows.getObjectByName(object.name).type !=="RectAreaLight")) {
-            if (intersected !== object) {
-            console.log("window name:")
-            console.log(this.windows.getObjectByName(object.name));
-            
+            if (intersected !== object) {            
             windowPopUp.innerHTML += object.name;
             windowPopUp.style.left = event.clientX+'px';
             windowPopUp.style.top = event.clientY+'px';
