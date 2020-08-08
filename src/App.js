@@ -16,7 +16,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
-import FloorTexture from './assets/images/FloorGradient.png';
+import FloorTexture from './assets/images/greenGradient.png';
 import About from './components/About';
 import Timeline from './components/Timeline'
 import Login from './components/Login'
@@ -110,6 +110,67 @@ THREEx.DayNight.SunLight	= function(){
 			light.intensity	= 0;
 		}
 	}	
+}
+
+
+
+THREEx.DayNight.Skydom		= function(){
+	var geometry	= new THREE.SphereGeometry( 700, 32, 15 );
+	var shader	= THREEx.DayNight.Skydom.Shader
+	var uniforms	= THREE.UniformsUtils.clone(shader.uniforms)
+	var material	= new THREE.ShaderMaterial({
+		vertexShader	: shader.vertexShader,
+		fragmentShader	: shader.fragmentShader,
+		uniforms	: uniforms,
+		side		: THREE.BackSide
+	});
+
+	var mesh	= new THREE.Mesh( geometry, material );
+	this.object3d	= mesh
+	
+	this.update	= function(sunAngle){
+		var phase	= THREEx.DayNight.currentPhase(sunAngle)
+		if( phase === 'day' ){
+			uniforms.topColor.value.set("rgb(0,120,255)");
+			uniforms.bottomColor.value.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*200)+55) + "," + (Math.floor(Math.sin(sunAngle)*200)) +")");
+		} else if( phase === 'twilight' ){
+			uniforms.topColor.value.set("rgb(0," + (120-Math.floor(Math.sin(sunAngle)*240*-1)) + "," + (255-Math.floor(Math.sin(sunAngle)*510*-1)) +")");
+			uniforms.bottomColor.value.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
+		} else {
+			uniforms.topColor.value.set('black')
+			uniforms.bottomColor.value.set('black');
+		}		
+	}
+}
+
+THREEx.DayNight.Skydom.Shader	= {
+	uniforms	: {
+		topColor	: { type: "c", value: new THREE.Color().setHSL( 0.6, 1, 0.75 ) },
+		bottomColor	: { type: "c", value: new THREE.Color( 0xffffff ) },
+		offset		: { type: "f", value: 400 },
+		exponent	: { type: "f", value: 0.6 },
+	},
+	vertexShader	: [
+		'varying vec3 vWorldPosition;',
+		'void main() {',
+		'	vec4 worldPosition = modelMatrix * vec4( position, 1.0 );',
+		'	vWorldPosition = worldPosition.xyz;',
+		'	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
+		'}',
+	].join('\n'),
+	fragmentShader	: [
+		'uniform vec3 topColor;',
+		'uniform vec3 bottomColor;',
+		'uniform float offset;',
+		'uniform float exponent;',
+
+		'varying vec3 vWorldPosition;',
+
+		'void main() {',
+		'	float h = normalize( vWorldPosition + offset ).y;',
+		'	gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( h, exponent ), 0.0 ) ), 1.0 );',
+		'}',
+	].join('\n'),
 }
 /// End Day night cycle///
 
@@ -256,16 +317,19 @@ class App extends Component {
     /// Floor ///
     var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
     var floorTexture = new THREE.TextureLoader().load(FloorTexture);
-    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.2, metalness: 0 } );
+    var matStdFloor = new THREE.MeshStandardMaterial( { color:0xFFFFFF, roughness: 0.2, metalness: 0 } );
     var floor = new THREE.Mesh( geoFloor, matStdFloor );
     floor.receiveShadow = true;
     this.scene.add( floor );
     /// End Floor /// 
 
 
+    this.skydom = new THREEx.DayNight.Skydom();
+    this.scene.add(this.skydom.object3d);
     /// insert lights ///
-    this.sunLight	= new THREEx.DayNight.SunLight()
-    this.scene.add( this.sunLight.object3d )    
+    this.sunLight	= new THREEx.DayNight.SunLight();
+    this.scene.add( this.sunLight.object3d );
+
     
     var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.2 );    // this.scene.add( hemiLight );
     this.scene.add(ambiLight)
@@ -448,6 +512,8 @@ class App extends Component {
       this.planeRotateGroup.rotation.y=-t;
     }
     this.sunLight.update(sunTheta);
+    this.skydom.update(sunTheta);
+
     this.scene.traverse( this.darkenNonBloomed );
     this.bloomComposer.render();
 
