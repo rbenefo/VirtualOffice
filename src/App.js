@@ -193,15 +193,15 @@ class App extends Component {
         }
       };
       }).catch(function (error) {
-        if (error.response.status===401) {
-          let blocker = document.getElementById("blocker");
-          if (blocker.style.display !== "block") {
+        // if (error.response.status===401) {
+        //   let blocker = document.getElementById("blocker");
+        //   if (blocker.style.display !== "block") {
 
-            blocker.style.display="block";
-            let notLoggedIn = document.getElementById("notLoggedInWarning");
-            notLoggedIn.style.display="block";
-          }
-        }
+        //     blocker.style.display="block";
+        //     let notLoggedIn = document.getElementById("notLoggedInWarning");
+        //     notLoggedIn.style.display="block";
+        //   }
+        // }
         console.log("Axios error:")
         console.log(error)
     });
@@ -502,14 +502,14 @@ class App extends Component {
             //   // __this.circleWindow.material.color.setHex( 0x18072e);
             // }
         }).catch(function (error) {
-          if (error.response.status===401) {
-            let blocker = document.getElementById("blocker");
-            if (blocker.style.display !== "block") {
-              blocker.style.display="block";
-              let notLoggedIn = document.getElementById("notLoggedInWarning");
-              notLoggedIn.style.display="block";
-            }
-          }
+          // if (error.response.status===401) {
+          //   let blocker = document.getElementById("blocker");
+          //   if (blocker.style.display !== "block") {
+          //     blocker.style.display="block";
+          //     let notLoggedIn = document.getElementById("notLoggedInWarning");
+          //     notLoggedIn.style.display="block";
+          //   }
+          // }
           console.log("Axios error:")
           console.log(error.response)
       });

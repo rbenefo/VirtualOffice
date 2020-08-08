@@ -1,11 +1,11 @@
 
 .ball {
-	border-radius: 20px;
+	border-radius: 2px;
     background-color:rgba(94, 94, 94, 0.5);
     position:absolute;
     display: inline-block;
 	height: 30px;
-    width: 30px;
+    width: 20px;
     z-index:10;
     top:110%;
   
@@ -31,3 +31,4 @@
     border: 3px solid rgb(190, 190, 190,0.5);
     border-radius: 5px;
 }
+
