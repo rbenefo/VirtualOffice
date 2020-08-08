@@ -1,0 +1,61 @@
+#aboutButton {
+    background-color:rgb(175, 175, 175, 0.5);
+    border:none;
+    width:30px;
+    height:30px;
+    border-radius:15px;
+    z-index:1;
+    position:absolute;
+    top:50%;
+    left:2%;
+    color:white;
+    font-family: Quicksand;
+    font-weight:bold;
+    font-size:20px;
+}
+
+
+#aboutTextContainer {
+    display:none;
+    position:absolute;
+    height:200px;
+    width:200px;
+    border-radius:10px;
+    top:50%;
+    left:5%;
+}
+
+#aboutTextContainer .arrow {
+    position: absolute;
+  }
+  
+#aboutButton:hover {
+    background-color:rgba(94, 94, 94, 0.5);
+}
+#aboutButton:hover + #aboutTextContainer {
+    display:block;
+}
+#arrowLeft {
+    position:absolute;
+    width: 0; 
+    height: 0; 
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent; 
+    border-right:10px solid rgb(175, 175, 175, 0.9); 
+    z-index:1;
+  }
+#projectDescription {
+    position:absolute;
+    font-family: Quicksand;
+    background-color:rgb(175, 175, 175, 0.9);
+    left:5%;
+    top:-10%;
+    width:175px;
+    border-radius:10px;
+    color:white;
+    padding:10px;
+    -moz-box-shadow:     -1px 3px 5px 0px rgb(100, 100, 100);
+    -webkit-box-shadow:  -1px 3px 5px 0px rgb(100, 100, 100);
+    box-shadow:          -1px 3px 5px 0px rgb(100, 100, 100);
+    font-weight:bold;
+}
