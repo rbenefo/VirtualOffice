@@ -8,7 +8,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import PlaneGLB from './assets/glb/airplanev2.glb';
+import PlaneGLB from './assets/glb/airplane.glb';
 import DLBuildingGLB from './assets/glb/dlbuilding.glb';
 
 import axios from "axios";
@@ -28,8 +28,6 @@ axios.defaults.withCredentials=true;
 /// Initialize Constants ///
 var stats = new Stats();
 var clock = new THREE.Clock();
-var timeCounter = 0;
-var mixers = [];
 var sunTheta;
 var THREEx = {};
 var t = 0;
@@ -65,7 +63,6 @@ var appContainer;
 var data;
 let timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
 var intersects, windowPopUp, object;
-var timelineToggle = 0;
 /// End Initialize Constants ///
 
 
@@ -154,6 +151,7 @@ class App extends Component {
   componentDidMount() {
     this.sceneSetup();
     this.load();
+    this.updateModel()
     window.addEventListener("resize", this.handleWindowResize);
     window.addEventListener('mousemove', this.onDocumentMouseOver );
   }
@@ -168,7 +166,7 @@ class App extends Component {
   componentDidUpdate(prevProps, prevState) {
     if ((prevProps.timelineActive !== this.props.timelineActive) &&(this.props.timelineActive === 1)) {
       axios.get('http://localhost:8081/slackRoute/getBulkData', {
-      }).then(function (res) { //todo: have this happen only when DragStart begins, so we're not shuttling large amounts of data so rapidly
+      }).then(function (res) {
       if (res.data.presenceData === undefined || res.data.presenceData.length === 0) {
           // array empty or does not exist
       } else {
@@ -193,15 +191,18 @@ class App extends Component {
         }
       };
       }).catch(function (error) {
-        // if (error.response.status===401) {
-        //   let blocker = document.getElementById("blocker");
-        //   if (blocker.style.display !== "block") {
+        if (error.response !== void(0)){
 
-        //     blocker.style.display="block";
-        //     let notLoggedIn = document.getElementById("notLoggedInWarning");
-        //     notLoggedIn.style.display="block";
-        //   }
-        // }
+        if (error.response.status===401) {
+          let blocker = document.getElementById("blocker");
+          if (blocker.style.display !== "block") {
+
+            blocker.style.display="block";
+            let notLoggedIn = document.getElementById("notLoggedInWarning");
+            notLoggedIn.style.display="block";
+          }
+        }
+        }
         console.log("Axios error:")
         console.log(error)
     });
@@ -237,7 +238,6 @@ class App extends Component {
     // this.renderer.shadowMap.enabled = true;
     // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     this.renderer.capabilities.maxTextureSize=1;
-    console.log(this.renderer.capabilities)
 
     
     // renderer.autoClear = false;
@@ -289,33 +289,9 @@ class App extends Component {
     let setModelsInWorld = ()=> {
     
         ///ADD PLANE///
-        const planeGroup = this.par.getObjectByName("/static/media/airplanev2.38a418d8.glb");
-        const plane = planeGroup.getObjectByName("Plane")
-        const banner = plane.getObjectByName("Banner");
-
-        var drawCanvas = document.createElement("CANVAS");
-        drawCanvas.width = 1800;
-        drawCanvas.height=1200;
-        var ctx = drawCanvas.getContext("2d");
-        ctx.font = "250px Quicksand";
-        ctx.fillStyle = "white";
-        ctx.textAlign="center";
-        // ctx.scale(1, -1); 
-        ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
-        ctx.fillText("Hello World this is a test", 1000, 1000);
-        ctx.textBaseline = "middle";
-
-        var canvaTexture=new THREE.CanvasTexture( drawCanvas );
-        canvaTexture.flipY=true;
-        canvaTexture.wrapS = THREE.RepeatWrapping;
-        canvaTexture.repeat.x = - 1;
-
-        banner.material	= new THREE.MeshStandardMaterial({
-          map	: canvaTexture,
-          side: THREE.DoubleSide,
-  
-        })
-    
+        const planeGroup = this.par.getObjectByName("/static/media/airplane.ca054c40.glb");
+        this.plane = planeGroup.getObjectByName("Plane")
+        // const banner = this.plane.getObjectByName("Banner");
         this.mixer = new THREE.AnimationMixer( planeGroup );
         // this.mixer.clipAction(planeGroup.animations[1]).play();
         var planeClips = planeGroup.animations;
@@ -330,7 +306,7 @@ class App extends Component {
         planeGroup.position.multiplyScalar(-1);
         this.planeRotateGroup = new THREE.Group();
 
-        this.scene.add(this.planeRotateGroup);
+        // this.scene.add(this.planeRotateGroup);
         this.planeRotateGroup.add( planeGroup);
         this.planeRotateGroup.rotation.z=Math.PI/6;
         this.planeRotateGroup.castShadow=true;
@@ -472,7 +448,6 @@ class App extends Component {
       this.planeRotateGroup.rotation.y=-t;
     }
     this.sunLight.update(sunTheta);
-    this.updateModel(timeMins);
     this.scene.traverse( this.darkenNonBloomed );
     this.bloomComposer.render();
 
@@ -482,16 +457,14 @@ class App extends Component {
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
-  updateModel(timeMins) {
-    timeCounter += 1;
 
+  updateModel() {
     __this = this;
-    if (this.props.timelineActive !== 1){ 
-      if (timeCounter >= 600) {
-        timeCounter =0;
+    var highFivesArr;
+    setInterval(function() {
+      if (__this.props.timelineActive !== 1){ 
         axios.get('http://localhost:8081/slackRoute/getPresence', {
         }).then(function (res) {
-          // console.log(res)
             data = res.data;
             // var rbenefoOnline = data.find(x => x.real_name === 'rbenefo').online;
             // if (rbenefoOnline === 1){
@@ -502,22 +475,97 @@ class App extends Component {
             //   // __this.circleWindow.material.color.setHex( 0x18072e);
             // }
         }).catch(function (error) {
-          // if (error.response.status===401) {
-          //   let blocker = document.getElementById("blocker");
-          //   if (blocker.style.display !== "block") {
-          //     blocker.style.display="block";
-          //     let notLoggedIn = document.getElementById("notLoggedInWarning");
-          //     notLoggedIn.style.display="block";
-          //   }
-          // }
-          console.log("Axios error:")
-          console.log(error.response)
-      });
-      }
-    } else {      
+          if (error.response !== void(0)){
+          if (error.response.status===401) {
+            let blocker = document.getElementById("blocker");
+            if (blocker.style.display !== "block") {
+              blocker.style.display="block";
+              let notLoggedIn = document.getElementById("notLoggedInWarning");
+              notLoggedIn.style.display="block";
+            }
+          }
+        };
 
+          console.log("Axios error:")
+          console.log(error)
+      });
     }
-  }
+    }, 20000); // 20 seconds
+    setInterval(function() {
+      axios.get('http://localhost:8081/slackRoute/getHighFives', {
+      }).then(function (res) {
+        highFivesArr = res.data;
+        let result = highFivesArr.map(a => {if (a.user ==="U017PEP5XV0") return a.text}); //replace U017PEP5XV0 with High Five bot        
+        let i = 0;
+        if (result.length >0 && i<result.length) {
+          loopHighFives()
+        }
+        function loopHighFives() {
+          if (__this.props.timelineActive !== 1){
+            const banner = __this.plane.getObjectByName("Banner"); //rm const
+            var drawCanvas = document.createElement("CANVAS");
+            drawCanvas.width = 1800;
+            drawCanvas.height=1200;
+            var ctx = drawCanvas.getContext("2d");
+            ctx.font = "250px Quicksand";
+            ctx.fillStyle = "white";
+            ctx.textAlign="center";
+            ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
+            ctx = wrapText(ctx, result[i], (drawCanvas.width-20)/2, 250, drawCanvas.width-100, 350);
+            ctx.textBaseline = "middle";
+    
+            var canvaTexture=new THREE.CanvasTexture( drawCanvas );
+            canvaTexture.wrapS = THREE.RepeatWrapping;
+    
+            banner.material	= new THREE.MeshStandardMaterial({
+              map	: canvaTexture,
+              side: THREE.DoubleSide,
+      
+            })
+        function wrapText(context, text, x, y, maxWidth, lineHeight) { // function from codepen.io/nishiohirokazu/pen/jjNyye (MIT license)
+          var words = text.split(' ');
+          var line = '';
+          for (var n = 0; n<words.length; n++) {
+            var testLine = line+words[n]+' ';
+            var metrics = context.measureText(testLine);
+            var testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+              context.fillText(line, x, y);
+              line = words[n]+ ' ';
+              y+= lineHeight;
+            } else {
+              line = testLine;
+            }
+          }
+          context.fillText(line,x,y);
+          return context;
+          }
+            __this.scene.add(__this.planeRotateGroup)
+          }
+          setTimeout(function() {
+            if (__this.scene.getObjectByName("planeRotateGroup")!==void(0)) {
+            __this.scene.remove(__this.planeRotateGroup)
+            }
+            i++;
+            if (i < result.length+1) loopHighFives();
+          },50000/result.length );
+      }
+      }).catch(function (error) {
+        if (error.response !== void(0)){
+        if (error.response.status===401) {
+          let blocker = document.getElementById("blocker");
+          if (blocker.style.display !== "block") {
+            blocker.style.display="block";
+            let notLoggedIn = document.getElementById("notLoggedInWarning");
+            notLoggedIn.style.display="block";
+          }
+        }
+      }
+        console.log("Axios error high five:")
+        console.log(error)
+    });
+    }, 60000);//60000 ; 1 mins
+}
 
   onDocumentMouseOver( event ) {
     event.preventDefault();
@@ -619,7 +667,7 @@ class Container extends React.Component {
   }
   recordTimelineTime(timelinePercentage) {
     var date = new Date(); // REMOVE VARS
-    var timeMins= date.getHours()*60+date.getMinutes();
+    timeMins= date.getHours()*60+date.getMinutes();
     var timelineTime = timeMins*timelinePercentage;
     this.setState({time: timelineTime})
   }
