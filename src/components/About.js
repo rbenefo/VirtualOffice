@@ -19,7 +19,7 @@ export default class About extends React.Component {
                 
             This project was made by 
             Tommy O'Halleran, Elena Bremner, and Roshan Benefo to 
-            create community at Deeplocal.
+            create a community at Deeplocal.
             
             </div>
             </div>

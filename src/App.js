@@ -79,6 +79,7 @@ THREEx.DayNight.currentPhase	= function(sunAngle){
 		return 'night'
 	}
 }
+//day+night
 THREEx.DayNight.SunLight	= function(){
   var light	= new THREE.DirectionalLight( "#ffffff");
   light.castShadow = true;
@@ -199,7 +200,7 @@ class App extends Component {
     // get container dimensions and use them for scene sizing
     const width = appContainer.clientWidth;
     const height = appContainer.clientHeight;
-
+    //camera
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(60, width/height, 1, 10000); //init camera. 1, 1000 sets camera "Frustrum"; see docs
     this.camera.position.set(-10, 10, 10); //set initial camera position
@@ -208,14 +209,16 @@ class App extends Component {
     /// camera control ///
     this.controls = new OrbitControls(this.camera, this.el);
     this.controls.enableDamping = true;
+    this.controls.dampingFactor= 0.2;
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
-    this.controls.maxDistance = 50; //min zoom
+    this.controls.maxDistance = 35; //min zoom
     this.controls.minDistance = 2; //max zoom
     this.controls.minPolarAngle = Math.PI/10; //min camera angle
-    this.controls.maxPolarAngle = Math.PI/4; //max camera angle
+    this.controls.maxPolarAngle = Math.PI/2; //max camera angle
 
     this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false}); // init renderer
     this.renderer.setSize(width, height);
+    // this.renderer.setClearColor
     // this.renderer.shadowMap.enabled = true;
     // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     this.renderer.capabilities.maxTextureSize=1;
@@ -249,7 +252,7 @@ class App extends Component {
     this.sunLight	= new THREEx.DayNight.SunLight()
     this.scene.add( this.sunLight.object3d )    
     
-    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.05 );    // this.scene.add( hemiLight );
+    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.2 );    // this.scene.add( hemiLight );
     this.scene.add(ambiLight)
     /// end insert lights///
 
@@ -324,7 +327,7 @@ class App extends Component {
         const dlBuilding = this.par.getObjectByName("/static/media/dlbuilding.e2efb9e7.glb");
         dlBuilding.position.set(0, 0.5, 0);
         this.windows = dlBuilding.getObjectByName("Windows");
-        this.scene.add(dlBuilding)
+        this.scene.add(dlBuilding) // adding it to the actual scene 
         ///END ADD BUILDING///
         console.log( 'Loading Complete!');
 
@@ -348,7 +351,7 @@ class App extends Component {
                   // rectLight.add( rectLightMesh );
             } else if(windowsPermaOff.includes(node.name)) {
                 node.material = new THREE.MeshBasicMaterial({
-                  color:"#060f2b", // window OFF
+                  color:"#060f2b", // window OFF 
                   });
             };
 
@@ -389,7 +392,7 @@ class App extends Component {
       
     };
 
-
+    // load new model 
 
     function loadGLBModel( model, onLoaded ) {
       var loader = new GLTFLoader();
@@ -444,15 +447,15 @@ class App extends Component {
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
-      sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
-      // sunTheta = Math.PI/2;
+      // sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
+      sunTheta = Math.PI/2;
     }
     t += 0.01;
     if (Math.abs(t-2*Math.PI) < 0.01) {
       t = 0;
     }
     if (this.planeRotateGroup !== undefined) {
-      this.planeRotateGroup.position.set(20*Math.cos(t)-10, 20, 20*Math.sin(t)-10);
+      this.planeRotateGroup.position.set(15*Math.cos(t)-10, 20, 10*Math.sin(t)-10); // change 20 to other for plane size and divide t by speed
       this.planeRotateGroup.rotation.y=-t;
     }
     this.sunLight.update(sunTheta);
