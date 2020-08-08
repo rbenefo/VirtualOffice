@@ -19,8 +19,11 @@ import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLigh
 import FloorTexture from './assets/images/FloorGradient.png';
 import About from './components/About';
 import Timeline from './components/Timeline'
+import Login from './components/Login'
 
 import './App.css';
+
+axios.defaults.withCredentials=true;
 
 /// Initialize Constants ///
 var stats = new Stats();
@@ -189,7 +192,19 @@ class App extends Component {
           // __this.circleWindow.material.color.setHex( 0x18072e );
         }
       };
-      });
+      }).catch(function (error) {
+        if (error.response.status===401) {
+          let blocker = document.getElementById("blocker");
+          if (blocker.style.display !== "block") {
+
+            blocker.style.display="block";
+            let notLoggedIn = document.getElementById("notLoggedInWarning");
+            notLoggedIn.style.display="block";
+          }
+        }
+        console.log("Axios error:")
+        console.log(error)
+    });
     } 
   }
 
@@ -257,8 +272,6 @@ class App extends Component {
     /// end insert lights///
 
   };
-
-
 
 
   load = () => {
@@ -489,8 +502,16 @@ class App extends Component {
             //   // __this.circleWindow.material.color.setHex( 0x18072e);
             // }
         }).catch(function (error) {
+          if (error.response.status===401) {
+            let blocker = document.getElementById("blocker");
+            if (blocker.style.display !== "block") {
+              blocker.style.display="block";
+              let notLoggedIn = document.getElementById("notLoggedInWarning");
+              notLoggedIn.style.display="block";
+            }
+          }
           console.log("Axios error:")
-          console.log(error)
+          console.log(error.response)
       });
       }
     } else {      
@@ -576,6 +597,7 @@ class App extends Component {
     return (
     <div id = "visual"  ref={ref => (this.el = ref)}>
     <About/>
+    
     </div>
     );
   }
@@ -596,18 +618,40 @@ class Container extends React.Component {
     this.setState({timelineActive:bool})
   }
   recordTimelineTime(timelinePercentage) {
-    var date = new Date();
+    var date = new Date(); // REMOVE VARS
     var timeMins= date.getHours()*60+date.getMinutes();
     var timelineTime = timeMins*timelinePercentage;
     this.setState({time: timelineTime})
+  }
+  convertTimelineTimeToClockTime(){
+    if ((this.state.time) && (this.state.timelineActive ===1)) {
+    let clockTimeHours = Math.floor(this.state.time/60)
+    let clockTimeMins = Math.trunc(this.state.time % 60);
+    let clockTimeMinsStr = clockTimeMins.toString();
+    if (clockTimeMinsStr.length ===1) { // otherwise,round hours get displayed as "7:0", not "7:00"
+    clockTimeMinsStr = "0"+clockTimeMinsStr;
+    }
+    let clockTime = clockTimeHours.toString() + ":"+clockTimeMinsStr;
+    return clockTime 
+    }
+  }
+  closeWarning() {
+    let notLoggedIn = document.getElementById("notLoggedInWarning");
+    let blocker = document.getElementById("blocker");
+    notLoggedIn.style.display="none";
+    blocker.style.display="none";
   }
   render() {
     return (
       <div style = {style} id = "container">
         <div id = "appContainer">
+        <div id = "clockTime">{this.convertTimelineTimeToClockTime()}</div>
         <App timelineActive ={this.state.timelineActive} timelineTime = {this.state.time}/>
         </div>
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
+        
+        <div id = "notLoggedInWarning">You’re not logged into your Deeplocal account! Log in to view Deeplocal’s virtual office.<Login/></div>
+        <div id = "blocker" onClick = {this.closeWarning}/>
       </div>
     );
   }
