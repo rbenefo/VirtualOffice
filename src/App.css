@@ -41,34 +41,31 @@ body {
   font-family:Quicksand;
 
 }
-
+/* timeline*/
 #clockTime {
   position:absolute;
   width:100px;
   height:50px;
   left:50%;
-  top:80%;
+  top:85%;
   z-index:10;
   color:white;
   font-family:Quicksand;
+  font-weight: bold;
+  font-size: 20pt;
 }
 
-#notLoggedInWarning {
-  display:none;
+/*#notLoggedInWarning {
+  display:block;
   position:absolute;
   background-color:rgb(173, 173, 173, 0.8);
   padding:10px;
   left:50%;
   top:50%;
   width:500px;
-  height:200px;
-  /* margin:auto; */
-  z-index:30;
-  font-family:Quicksand;
-  color:black;
-}
+}*/
 
-#blocker{
+/*#blocker{
   position:fixed;
   top:0;
   left:0;
@@ -77,4 +74,4 @@ body {
   content: '';
   z-index:25;
 
-}
+}*/

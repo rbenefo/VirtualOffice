@@ -6,9 +6,9 @@
     border-radius:2px;
     z-index:1;
     position:absolute;
-    top:5%;
-    left:70%;
-    color:rgba(40,155,255);
+    top:12%;
+    left:3%;
+    color:rgba(0,0,0);
     font-family: Quicksand;
     font-weight:bold;
     font-size:15px;
@@ -25,8 +25,8 @@
     height:300px;
     width:300px;
     border-radius:15px;
-    top:7%;
-    left:73%;
+    top:15%;
+    left:5%;
 
 }
 

@@ -193,15 +193,15 @@ class App extends Component {
         }
       };
       }).catch(function (error) {
-        // if (error.response.status===401) {
-        //   let blocker = document.getElementById("blocker");
-        //   if (blocker.style.display !== "block") {
+        if (error.response !== void(0)){
+        if (error.response.status===401) {
+          let notLoggedIn = document.getElementById("notLoggedInWarning");
+          if (notLoggedIn.style.display !== "block") {
+            notLoggedIn.style.display="block";
+          }
+        }
+      }
 
-        //     blocker.style.display="block";
-        //     let notLoggedIn = document.getElementById("notLoggedInWarning");
-        //     notLoggedIn.style.display="block";
-        //   }
-        // }
         console.log("Axios error:")
         console.log(error)
     });
@@ -502,14 +502,14 @@ class App extends Component {
             //   // __this.circleWindow.material.color.setHex( 0x18072e);
             // }
         }).catch(function (error) {
-          // if (error.response.status===401) {
-          //   let blocker = document.getElementById("blocker");
-          //   if (blocker.style.display !== "block") {
-          //     blocker.style.display="block";
-          //     let notLoggedIn = document.getElementById("notLoggedInWarning");
-          //     notLoggedIn.style.display="block";
-          //   }
-          // }
+          if (error.response !== void(0)){
+        if (error.response.status===401) {
+          let notLoggedIn = document.getElementById("notLoggedInWarning");
+          if (notLoggedIn.style.display !== "block") {
+            notLoggedIn.style.display="block";
+          }
+        }
+      }
           console.log("Axios error:")
           console.log(error.response)
       });
@@ -635,12 +635,12 @@ class Container extends React.Component {
     return clockTime 
     }
   }
-  closeWarning() {
-    let notLoggedIn = document.getElementById("notLoggedInWarning");
-    let blocker = document.getElementById("blocker");
-    notLoggedIn.style.display="none";
-    blocker.style.display="none";
-  }
+  // closeWarning() {
+  //   let notLoggedIn = document.getElementById("notLoggedInWarning");
+  //   let blocker = document.getElementById("blocker");
+  //   notLoggedIn.style.display="none";
+  //   blocker.style.display="none";
+  // }
   render() {
     return (
       <div style = {style} id = "container">
@@ -651,7 +651,7 @@ class Container extends React.Component {
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
         
         <div id = "notLoggedInWarning">You’re not logged into your Deeplocal account! Log in to view Deeplocal’s virtual office.<Login/></div>
-        <div id = "blocker" onClick = {this.closeWarning}/>
+        // <div id = "blocker" onClick = {this.closeWarning}/>
       </div>
     );
   }
