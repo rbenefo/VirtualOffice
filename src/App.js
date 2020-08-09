@@ -428,7 +428,7 @@ class App extends Component {
           const loadingScreen = document.getElementById( 'loadingScreen' );
           loadingScreen.classList.add( 'fade-out' );        
           console.log( 'Loading Complete!');
-          loadingScreen.addEventListener("transitioned", removeLoadingScreen)
+          loadingScreen.addEventListener("transitionend", removeLoadingScreen)
 
         });
         // END GLOW WINDOWS //
