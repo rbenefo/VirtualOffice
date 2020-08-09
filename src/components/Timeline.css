@@ -11,12 +11,16 @@
 -webkit-box-shadow: 0px 0px 41px -5px rgba(117,117,117,1);
 -moz-box-shadow: 0px 0px 41px -5px rgba(117,117,117,1);
 box-shadow: 0px 0px 41px -5px rgba(117,117,117,1);
-
-  
 }
 .ball:active {
     background-color: rgb(197,161,88);
-   
+}
+
+.ball:hover {
+    background-color: rgb(197,161,88);
+}
+.ball.returnToOrigin {
+    transition: left 0.5s ease;
 }
 
 
@@ -32,7 +36,10 @@ box-shadow: 0px 0px 41px -5px rgba(117,117,117,1);
 }
 
 .timelineLine {
-    border: 3px solid rgb(190, 190, 190,0.5);
+    border-top: 3px dotted rgb(190, 190, 190,0.5);
+    border-bottom:none;
+    border-left:none;
+    border-right:none;
     border-radius: 5px;
 }
 

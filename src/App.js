@@ -22,7 +22,6 @@ import Timeline from './components/Timeline'
 import Login from './components/Login'
 
 import DLLogo from './assets/images/dlLogo.jpg'
-
 import './App.css';
 
 axios.defaults.withCredentials=true;
@@ -54,15 +53,6 @@ var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window1
 
 
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
-// const loadingManager = new THREE.LoadingManager( () => {
-// 	console.log("loading complete!")
-//   const loadingScreen = document.getElementById( 'loadingScreen' );
-//   loadingScreen.classList.add( 'fade-out' );
-  
-//   // // optional: remove loader from DOM via event listener
-//   // loadingScreen.addEventListener( 'transitionend', onTransitionEnd );
-  
-// } );
 
 const style = {
   height: window.innerHeight, // we can control scene size by setting container dimensions
@@ -266,9 +256,9 @@ class App extends Component {
       }).catch(function (error) {
         if (error.response !== void(0)){
         if (error.response.status===401) {
-          let notLoggedIn = document.getElementById("notLoggedInWarning");
-          if (notLoggedIn.style.display !== "block") {
-            notLoggedIn.style.display="block";
+          let loginButton = document.getElementById("loginButton");
+          if (loginButton.style.backgroundColor !== "#c45949") {
+            loginButton.style.backgroundColor="#c45949";
           }
         }
       }
@@ -413,10 +403,6 @@ class App extends Component {
                   rectLight.translateZ(0.5);
                   rectLight.rotateY(Math.PI/2)
                   node.add( rectLight )
-                  // var rectLightMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( { color:"#e0cc48", side: THREE.FrontSide } ) );
-                  // rectLightMesh.scale.x = rectLight.width;
-                  // rectLightMesh.scale.y = rectLight.height;
-                  // rectLight.add( rectLightMesh );
             } else if(windowsPermaOff.includes(node.name)) {
                 node.material = new THREE.MeshBasicMaterial({
                   color:"#060f2b", // window OFF 
@@ -565,9 +551,9 @@ class App extends Component {
         }).catch(function (error) {
           if (error.response !== void(0)){
         if (error.response.status===401) {
-          let notLoggedIn = document.getElementById("notLoggedInWarning");
-          if (notLoggedIn.style.display !== "block") {
-            notLoggedIn.style.display="block";
+          let loginButton = document.getElementById("loginButton");
+          if (loginButton.style.backgroundColor !== "#c45949") {
+            loginButton.style.backgroundColor="#c45949";
           }
         }
       }
@@ -639,11 +625,9 @@ class App extends Component {
       }).catch(function (error) {
         if (error.response !== void(0)){
         if (error.response.status===401) {
-          let blocker = document.getElementById("blocker");
-          if (blocker.style.display !== "block") {
-            blocker.style.display="block";
-            let notLoggedIn = document.getElementById("notLoggedInWarning");
-            notLoggedIn.style.display="block";
+          let loginButton = document.getElementById("loginButton");
+          if (loginButton.style.backgroundColor !== "#c45949") {
+            loginButton.style.backgroundColor="#c45949";
           }
         }
       }
@@ -769,12 +753,6 @@ class Container extends React.Component {
     return clockTime 
     }
   }
-  // closeWarning() {
-  //   let notLoggedIn = document.getElementById("notLoggedInWarning");
-  //   let blocker = document.getElementById("blocker");
-  //   notLoggedIn.style.display="none";
-  //   blocker.style.display="none";
-  // }
   render() {
     return (
       <div style = {style} id = "container">
@@ -784,15 +762,12 @@ class Container extends React.Component {
         </div>
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
         
-        <div id = "notLoggedInWarning">You’re not logged into your Deeplocal account! Log in to view Deeplocal’s virtual office.<Login/></div>
-<<<<<<< HEAD
-        // <div id = "blocker" onClick = {this.closeWarning}/>
-=======
-        <div id = "blocker" onClick = {this.closeWarning}/>
-        <div id = "loadingScreen">
+       <Login/>
+
+         <div id = "loadingScreen">
           <img src={DLLogo} id = "loadingLogo"/>
         </div>
->>>>>>> 2c919dc373493e705fd6a6a267e24151fe108a0c
+
       </div>
     );
   }

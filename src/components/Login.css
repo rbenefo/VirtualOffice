@@ -1,6 +1,6 @@
 #loginButtonContainer {
     position:absolute;
-    z-index:100;
+    z-index:10;
     bottom:10%;
     top:7%;
     left:3%;
@@ -21,8 +21,6 @@
     outline:none;
     font-family: Quicksand;
     font-weight:bold;
-
-
 }
 
 #loginButton:hover {

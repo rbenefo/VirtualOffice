@@ -24,6 +24,7 @@ export default class Timeline extends React.Component {
         var timelineWrapper = document.getElementById("timelineWrapper");
         var element = document.createElement('div');
         element.className = "ball";
+        element.style.left="680px"
         var timelineLine = document.createElement('hr');
         timelineLine.className = "timelineLine";
         var container = document.createElement('div');
@@ -49,7 +50,9 @@ export default class Timeline extends React.Component {
                 self.props.timelineActive(0);
 
 
-                // element.style.left= "700px";
+                element.style.left= "680px";
+                element.classList.add("returnToOrigin");
+                element.addEventListener("transitionend", removeReturnToOrigin);
                 // console.log(self.props.timelineActive)
 
             }
@@ -57,6 +60,10 @@ export default class Timeline extends React.Component {
         timelineWrapper.appendChild(container)        
 
         new Draggable(element, options); 
+        function removeReturnToOrigin(event) {
+            event.target.classList.remove("returnToOrigin")
+
+        }
         // console.log("timeline")
         // console.log(timeline)
 
