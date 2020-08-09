@@ -8,18 +8,20 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import PlaneGLB from './assets/glb/airplanev2.glb';
-import DLBuildingGLB from './assets/glb/dlbuilding.glb';
+import PlaneGLB from './assets/glb/airplane.glb';
+import DLBuildingGLB from './assets/glb/building.glb';
 
 import axios from "axios";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
-import FloorTexture from './assets/images/FloorGradient.png';
+import FloorTexture from './assets/images/greenGradient.png';
 import About from './components/About';
 import Timeline from './components/Timeline'
 import Login from './components/Login'
+
+import DLLogo from './assets/images/dlLogo.jpg'
 
 import './App.css';
 
@@ -28,8 +30,6 @@ axios.defaults.withCredentials=true;
 /// Initialize Constants ///
 var stats = new Stats();
 var clock = new THREE.Clock();
-var timeCounter = 0;
-var mixers = [];
 var sunTheta;
 var THREEx = {};
 var t = 0;
@@ -54,6 +54,15 @@ var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window1
 
 
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
+// const loadingManager = new THREE.LoadingManager( () => {
+// 	console.log("loading complete!")
+//   const loadingScreen = document.getElementById( 'loadingScreen' );
+//   loadingScreen.classList.add( 'fade-out' );
+  
+//   // // optional: remove loader from DOM via event listener
+//   // loadingScreen.addEventListener( 'transitionend', onTransitionEnd );
+  
+// } );
 
 const style = {
   height: window.innerHeight, // we can control scene size by setting container dimensions
@@ -65,7 +74,6 @@ var appContainer;
 var data;
 let timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
 var intersects, windowPopUp, object;
-var timelineToggle = 0;
 /// End Initialize Constants ///
 
 
@@ -105,7 +113,8 @@ THREEx.DayNight.SunLight	= function(){
 		light.position.z = Math.cos(sunAngle) * 30;
 		var phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
-			light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
+      light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
+      light.intensity=1;
 		}else if( phase === 'twilight' ){
 		        light.intensity = 0.7;
 	        	light.color.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
@@ -113,6 +122,67 @@ THREEx.DayNight.SunLight	= function(){
 			light.intensity	= 0;
 		}
 	}	
+}
+
+
+
+THREEx.DayNight.Skydom		= function(){
+	var geometry	= new THREE.SphereGeometry( 700, 32, 15 );
+	var shader	= THREEx.DayNight.Skydom.Shader
+	var uniforms	= THREE.UniformsUtils.clone(shader.uniforms)
+	var material	= new THREE.ShaderMaterial({
+		vertexShader	: shader.vertexShader,
+		fragmentShader	: shader.fragmentShader,
+		uniforms	: uniforms,
+		side		: THREE.BackSide
+	});
+
+	var mesh	= new THREE.Mesh( geometry, material );
+	this.object3d	= mesh
+	
+	this.update	= function(sunAngle){
+		var phase	= THREEx.DayNight.currentPhase(sunAngle)
+		if( phase === 'day' ){
+			uniforms.topColor.value.set("rgb(0,120,255)");
+			uniforms.bottomColor.value.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*200)+55) + "," + (Math.floor(Math.sin(sunAngle)*200)) +")");
+		} else if( phase === 'twilight' ){
+			uniforms.topColor.value.set("rgb(0," + (120-Math.floor(Math.sin(sunAngle)*240*-1)) + "," + (255-Math.floor(Math.sin(sunAngle)*510*-1)) +")");
+			uniforms.bottomColor.value.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
+		} else {
+			uniforms.topColor.value.set('black')
+			uniforms.bottomColor.value.set('black');
+		}		
+	}
+}
+
+THREEx.DayNight.Skydom.Shader	= {
+	uniforms	: {
+		topColor	: { type: "c", value: new THREE.Color().setHSL( 0.6, 1, 0.75 ) },
+		bottomColor	: { type: "c", value: new THREE.Color( 0xffffff ) },
+		offset		: { type: "f", value: 400 },
+		exponent	: { type: "f", value: 0.6 },
+	},
+	vertexShader	: [
+		'varying vec3 vWorldPosition;',
+		'void main() {',
+		'	vec4 worldPosition = modelMatrix * vec4( position, 1.0 );',
+		'	vWorldPosition = worldPosition.xyz;',
+		'	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
+		'}',
+	].join('\n'),
+	fragmentShader	: [
+		'uniform vec3 topColor;',
+		'uniform vec3 bottomColor;',
+		'uniform float offset;',
+		'uniform float exponent;',
+
+		'varying vec3 vWorldPosition;',
+
+		'void main() {',
+		'	float h = normalize( vWorldPosition + offset ).y;',
+		'	gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( h, exponent ), 0.0 ) ), 1.0 );',
+		'}',
+	].join('\n'),
 }
 /// End Day night cycle///
 
@@ -154,6 +224,7 @@ class App extends Component {
   componentDidMount() {
     this.sceneSetup();
     this.load();
+    this.updateModel()
     window.addEventListener("resize", this.handleWindowResize);
     window.addEventListener('mousemove', this.onDocumentMouseOver );
   }
@@ -168,7 +239,7 @@ class App extends Component {
   componentDidUpdate(prevProps, prevState) {
     if ((prevProps.timelineActive !== this.props.timelineActive) &&(this.props.timelineActive === 1)) {
       axios.get('http://localhost:8081/slackRoute/getBulkData', {
-      }).then(function (res) { //todo: have this happen only when DragStart begins, so we're not shuttling large amounts of data so rapidly
+      }).then(function (res) {
       if (res.data.presenceData === undefined || res.data.presenceData.length === 0) {
           // array empty or does not exist
       } else {
@@ -202,6 +273,7 @@ class App extends Component {
         }
       }
 
+
         console.log("Axios error:")
         console.log(error)
     });
@@ -226,18 +298,17 @@ class App extends Component {
     this.controls.enableDamping = true;
     this.controls.dampingFactor= 0.2;
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
-    this.controls.maxDistance = 35; //min zoom
-    this.controls.minDistance = 2; //max zoom
-    this.controls.minPolarAngle = Math.PI/10; //min camera angle
-    this.controls.maxPolarAngle = Math.PI/2; //max camera angle
+    // this.controls.maxDistance = 35; //min zoom
+    // this.controls.minDistance = 2; //max zoom
+    // this.controls.minPolarAngle = Math.PI/10; //min camera angle
+    // this.controls.maxPolarAngle = Math.PI/2; //max camera angle
 
-    this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false}); // init renderer
+    this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false, powerPreference:"low-power"}); // init renderer
     this.renderer.setSize(width, height);
     // this.renderer.setClearColor
     // this.renderer.shadowMap.enabled = true;
     // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     this.renderer.capabilities.maxTextureSize=1;
-    console.log(this.renderer.capabilities)
 
     
     // renderer.autoClear = false;
@@ -263,11 +334,14 @@ class App extends Component {
     /// End Floor /// 
 
 
+    this.skydom = new THREEx.DayNight.Skydom();
+    this.scene.add(this.skydom.object3d);
     /// insert lights ///
-    this.sunLight	= new THREEx.DayNight.SunLight()
-    this.scene.add( this.sunLight.object3d )    
+    this.sunLight	= new THREEx.DayNight.SunLight();
+    this.scene.add( this.sunLight.object3d );
+
     
-    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.2 );    // this.scene.add( hemiLight );
+    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.05 );
     this.scene.add(ambiLight)
     /// end insert lights///
 
@@ -289,33 +363,9 @@ class App extends Component {
     let setModelsInWorld = ()=> {
     
         ///ADD PLANE///
-        const planeGroup = this.par.getObjectByName("/static/media/airplanev2.38a418d8.glb");
-        const plane = planeGroup.getObjectByName("Plane")
-        const banner = plane.getObjectByName("Banner");
-
-        var drawCanvas = document.createElement("CANVAS");
-        drawCanvas.width = 1800;
-        drawCanvas.height=1200;
-        var ctx = drawCanvas.getContext("2d");
-        ctx.font = "250px Quicksand";
-        ctx.fillStyle = "white";
-        ctx.textAlign="center";
-        // ctx.scale(1, -1); 
-        ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
-        ctx.fillText("Hello World this is a test", 1000, 1000);
-        ctx.textBaseline = "middle";
-
-        var canvaTexture=new THREE.CanvasTexture( drawCanvas );
-        canvaTexture.flipY=true;
-        canvaTexture.wrapS = THREE.RepeatWrapping;
-        canvaTexture.repeat.x = - 1;
-
-        banner.material	= new THREE.MeshStandardMaterial({
-          map	: canvaTexture,
-          side: THREE.DoubleSide,
-  
-        })
-    
+        const planeGroup = this.par.getObjectByName("/static/media/airplane.ca054c40.glb");
+        this.plane = planeGroup.getObjectByName("Plane")
+        // const banner = this.plane.getObjectByName("Banner");
         this.mixer = new THREE.AnimationMixer( planeGroup );
         // this.mixer.clipAction(planeGroup.animations[1]).play();
         var planeClips = planeGroup.animations;
@@ -330,19 +380,24 @@ class App extends Component {
         planeGroup.position.multiplyScalar(-1);
         this.planeRotateGroup = new THREE.Group();
 
-        this.scene.add(this.planeRotateGroup);
+        // this.scene.add(this.planeRotateGroup);
         this.planeRotateGroup.add( planeGroup);
         this.planeRotateGroup.rotation.z=Math.PI/6;
         this.planeRotateGroup.castShadow=true;
         ///END ADD PLANE///
 
         ///ADD BUILDING///
-        const dlBuilding = this.par.getObjectByName("/static/media/dlbuilding.e2efb9e7.glb");
+        const dlBuilding = this.par.getObjectByName("/static/media/building.9ccf91d1.glb");
         dlBuilding.position.set(0, 0.5, 0);
         this.windows = dlBuilding.getObjectByName("Windows");
         this.scene.add(dlBuilding) // adding it to the actual scene 
+        this.buildingMixer = new THREE.AnimationMixer( dlBuilding );
+        var buildingClips = dlBuilding.animations;
+        buildingClips.forEach(function(clip) {
+          __this.buildingMixer.clipAction( clip ).play();
+        })
+
         ///END ADD BUILDING///
-        console.log( 'Loading Complete!');
 
         // GLOW WINDOWS //
         RectAreaLightUniformsLib.init();
@@ -369,6 +424,10 @@ class App extends Component {
             };
 
           };
+          const loadingScreen = document.getElementById( 'loadingScreen' );
+          loadingScreen.classList.add( 'fade-out' );        
+          console.log( 'Loading Complete!');
+          loadingScreen.addEventListener("transitionend", removeLoadingScreen)
 
         });
         // END GLOW WINDOWS //
@@ -407,7 +466,7 @@ class App extends Component {
 
     // load new model 
 
-    function loadGLBModel( model, onLoaded ) {
+    function loadGLBModel( model, loader,onLoaded ) {
       var loader = new GLTFLoader();
       loader.setDRACOLoader( dracoLoader );
 
@@ -432,18 +491,21 @@ class App extends Component {
       });
     }
     function loadModels() {
+      var loader = new GLTFLoader();
       for ( let i = 0; i < MODELS.length; ++ i ) {
         var m = MODELS[ i ];
-        loadGLBModel( m, function () {
+        loadGLBModel( m,loader, function () {
           numLoadedModels+=1;
           if ( numLoadedModels === MODELS.length ) {
             setTimeout(function() {
               setModelsInWorld();
-            },1000);
-            
+            },1000);   
           }
         });
       }
+    }
+    function removeLoadingScreen(event) {
+      event.target.remove()
     }
 
   };
@@ -454,14 +516,14 @@ class App extends Component {
     delta = clock.getDelta();
 
     this.mixer.update( delta ); // plane animation
-
+    this.buildingMixer.update(delta);
     d = new Date();
     timeMins= d.getHours()*60+d.getMinutes();
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
-      // sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
-      sunTheta = Math.PI/2;
+      sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
+      // sunTheta = Math.PI/2;
     }
     t += 0.01;
     if (Math.abs(t-2*Math.PI) < 0.01) {
@@ -472,7 +534,8 @@ class App extends Component {
       this.planeRotateGroup.rotation.y=-t;
     }
     this.sunLight.update(sunTheta);
-    this.updateModel(timeMins);
+    this.skydom.update(sunTheta);
+
     this.scene.traverse( this.darkenNonBloomed );
     this.bloomComposer.render();
 
@@ -482,16 +545,14 @@ class App extends Component {
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
-  updateModel(timeMins) {
-    timeCounter += 1;
 
+  updateModel() {
     __this = this;
-    if (this.props.timelineActive !== 1){ 
-      if (timeCounter >= 600) {
-        timeCounter =0;
+    var highFivesArr;
+    setInterval(function() {
+      if (__this.props.timelineActive !== 1){ 
         axios.get('http://localhost:8081/slackRoute/getPresence', {
         }).then(function (res) {
-          // console.log(res)
             data = res.data;
             // var rbenefoOnline = data.find(x => x.real_name === 'rbenefo').online;
             // if (rbenefoOnline === 1){
@@ -510,14 +571,87 @@ class App extends Component {
           }
         }
       }
-          console.log("Axios error:")
-          console.log(error.response)
-      });
-      }
-    } else {      
 
+          console.log("Axios error:")
+          console.log(error)
+      });
     }
-  }
+    }, 20000); // 20 seconds
+    setInterval(function() {
+      axios.get('http://localhost:8081/slackRoute/getHighFives', {
+      }).then(function (res) {
+        highFivesArr = res.data;
+        let result = highFivesArr.map(a => {if (a.user ==="U017PEP5XV0") return a.text}); //replace U017PEP5XV0 with High Five bot        
+        let i = 0;
+        if (result.length >0 && i<result.length) {
+          loopHighFives()
+        }
+        function loopHighFives() {
+          if (__this.props.timelineActive !== 1){
+            const banner = __this.plane.getObjectByName("Banner"); //rm const
+            var drawCanvas = document.createElement("CANVAS");
+            drawCanvas.width = 1800;
+            drawCanvas.height=1200;
+            var ctx = drawCanvas.getContext("2d");
+            ctx.font = "250px Quicksand";
+            ctx.fillStyle = "white";
+            ctx.textAlign="center";
+            ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
+            ctx = wrapText(ctx, result[i], (drawCanvas.width-20)/2, 250, drawCanvas.width-100, 350);
+            ctx.textBaseline = "middle";
+    
+            var canvaTexture=new THREE.CanvasTexture( drawCanvas );
+            canvaTexture.wrapS = THREE.RepeatWrapping;
+    
+            banner.material	= new THREE.MeshStandardMaterial({
+              map	: canvaTexture,
+              side: THREE.DoubleSide,
+      
+            })
+        function wrapText(context, text, x, y, maxWidth, lineHeight) { // function from codepen.io/nishiohirokazu/pen/jjNyye (MIT license)
+          var words = text.split(' ');
+          var line = '';
+          for (var n = 0; n<words.length; n++) {
+            var testLine = line+words[n]+' ';
+            var metrics = context.measureText(testLine);
+            var testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+              context.fillText(line, x, y);
+              line = words[n]+ ' ';
+              y+= lineHeight;
+            } else {
+              line = testLine;
+            }
+          }
+          context.fillText(line,x,y);
+          return context;
+          }
+            __this.scene.add(__this.planeRotateGroup)
+          }
+          setTimeout(function() {
+            if (__this.scene.getObjectByName("planeRotateGroup")!==void(0)) {
+            __this.scene.remove(__this.planeRotateGroup)
+            }
+            i++;
+            if (i < result.length+1) loopHighFives();
+          },50000/result.length );
+      }
+      }).catch(function (error) {
+        if (error.response !== void(0)){
+        if (error.response.status===401) {
+          let blocker = document.getElementById("blocker");
+          if (blocker.style.display !== "block") {
+            blocker.style.display="block";
+            let notLoggedIn = document.getElementById("notLoggedInWarning");
+            notLoggedIn.style.display="block";
+          }
+        }
+      }
+        console.log("Axios error high five:")
+        console.log(error)
+    });
+    }, 60000);//60000 ; 1 mins
+}
 
   onDocumentMouseOver( event ) {
     event.preventDefault();
@@ -619,7 +753,7 @@ class Container extends React.Component {
   }
   recordTimelineTime(timelinePercentage) {
     var date = new Date(); // REMOVE VARS
-    var timeMins= date.getHours()*60+date.getMinutes();
+    timeMins= date.getHours()*60+date.getMinutes();
     var timelineTime = timeMins*timelinePercentage;
     this.setState({time: timelineTime})
   }
@@ -651,7 +785,14 @@ class Container extends React.Component {
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
         
         <div id = "notLoggedInWarning">You’re not logged into your Deeplocal account! Log in to view Deeplocal’s virtual office.<Login/></div>
+<<<<<<< HEAD
         // <div id = "blocker" onClick = {this.closeWarning}/>
+=======
+        <div id = "blocker" onClick = {this.closeWarning}/>
+        <div id = "loadingScreen">
+          <img src={DLLogo} id = "loadingLogo"/>
+        </div>
+>>>>>>> 2c919dc373493e705fd6a6a267e24151fe108a0c
       </div>
     );
   }
