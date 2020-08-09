@@ -113,7 +113,8 @@ THREEx.DayNight.SunLight	= function(){
 		light.position.z = Math.cos(sunAngle) * 30;
 		var phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
-			light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
+      light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
+      light.intensity=1;
 		}else if( phase === 'twilight' ){
 		        light.intensity = 0.7;
 	        	light.color.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
@@ -299,10 +300,10 @@ class App extends Component {
     this.controls.enableDamping = true;
     this.controls.dampingFactor= 0.2;
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
-    this.controls.maxDistance = 35; //min zoom
-    this.controls.minDistance = 2; //max zoom
-    this.controls.minPolarAngle = Math.PI/10; //min camera angle
-    this.controls.maxPolarAngle = Math.PI/2; //max camera angle
+    // this.controls.maxDistance = 35; //min zoom
+    // this.controls.minDistance = 2; //max zoom
+    // this.controls.minPolarAngle = Math.PI/10; //min camera angle
+    // this.controls.maxPolarAngle = Math.PI/2; //max camera angle
 
     this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false, powerPreference:"low-power"}); // init renderer
     this.renderer.setSize(width, height);
@@ -523,8 +524,8 @@ class App extends Component {
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
-      // sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
-      sunTheta = Math.PI/2;
+      sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
+      // sunTheta = Math.PI/2;
     }
     t += 0.01;
     if (Math.abs(t-2*Math.PI) < 0.01) {
