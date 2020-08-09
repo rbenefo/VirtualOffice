@@ -9,7 +9,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import PlaneGLB from './assets/glb/airplane.glb';
-import DLBuildingGLB from './assets/glb/dlbuilding.glb';
+import DLBuildingGLB from './assets/glb/building.glb';
 
 import axios from "axios";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
@@ -20,6 +20,8 @@ import FloorTexture from './assets/images/greenGradient.png';
 import About from './components/About';
 import Timeline from './components/Timeline'
 import Login from './components/Login'
+
+import DLLogo from './assets/images/dlLogo.jpg'
 
 import './App.css';
 
@@ -52,6 +54,15 @@ var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window1
 
 
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
+// const loadingManager = new THREE.LoadingManager( () => {
+// 	console.log("loading complete!")
+//   const loadingScreen = document.getElementById( 'loadingScreen' );
+//   loadingScreen.classList.add( 'fade-out' );
+  
+//   // // optional: remove loader from DOM via event listener
+//   // loadingScreen.addEventListener( 'transitionend', onTransitionEnd );
+  
+// } );
 
 const style = {
   height: window.innerHeight, // we can control scene size by setting container dimensions
@@ -293,7 +304,7 @@ class App extends Component {
     this.controls.minPolarAngle = Math.PI/10; //min camera angle
     this.controls.maxPolarAngle = Math.PI/2; //max camera angle
 
-    this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false}); // init renderer
+    this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false, powerPreference:"low-power"}); // init renderer
     this.renderer.setSize(width, height);
     // this.renderer.setClearColor
     // this.renderer.shadowMap.enabled = true;
@@ -317,7 +328,7 @@ class App extends Component {
     /// Floor ///
     var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
     var floorTexture = new THREE.TextureLoader().load(FloorTexture);
-    var matStdFloor = new THREE.MeshStandardMaterial( { color:0xFFFFFF, roughness: 0.2, metalness: 0 } );
+    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.2, metalness: 0 } );
     var floor = new THREE.Mesh( geoFloor, matStdFloor );
     floor.receiveShadow = true;
     this.scene.add( floor );
@@ -331,7 +342,7 @@ class App extends Component {
     this.scene.add( this.sunLight.object3d );
 
     
-    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.2 );    // this.scene.add( hemiLight );
+    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.05 );
     this.scene.add(ambiLight)
     /// end insert lights///
 
@@ -377,12 +388,17 @@ class App extends Component {
         ///END ADD PLANE///
 
         ///ADD BUILDING///
-        const dlBuilding = this.par.getObjectByName("/static/media/dlbuilding.e2efb9e7.glb");
+        const dlBuilding = this.par.getObjectByName("/static/media/building.9ccf91d1.glb");
         dlBuilding.position.set(0, 0.5, 0);
         this.windows = dlBuilding.getObjectByName("Windows");
         this.scene.add(dlBuilding) // adding it to the actual scene 
+        this.buildingMixer = new THREE.AnimationMixer( dlBuilding );
+        var buildingClips = dlBuilding.animations;
+        buildingClips.forEach(function(clip) {
+          __this.buildingMixer.clipAction( clip ).play();
+        })
+
         ///END ADD BUILDING///
-        console.log( 'Loading Complete!');
 
         // GLOW WINDOWS //
         RectAreaLightUniformsLib.init();
@@ -409,6 +425,10 @@ class App extends Component {
             };
 
           };
+          const loadingScreen = document.getElementById( 'loadingScreen' );
+          loadingScreen.classList.add( 'fade-out' );        
+          console.log( 'Loading Complete!');
+          loadingScreen.addEventListener("transitioned", removeLoadingScreen)
 
         });
         // END GLOW WINDOWS //
@@ -447,7 +467,7 @@ class App extends Component {
 
     // load new model 
 
-    function loadGLBModel( model, onLoaded ) {
+    function loadGLBModel( model, loader,onLoaded ) {
       var loader = new GLTFLoader();
       loader.setDRACOLoader( dracoLoader );
 
@@ -472,18 +492,21 @@ class App extends Component {
       });
     }
     function loadModels() {
+      var loader = new GLTFLoader();
       for ( let i = 0; i < MODELS.length; ++ i ) {
         var m = MODELS[ i ];
-        loadGLBModel( m, function () {
+        loadGLBModel( m,loader, function () {
           numLoadedModels+=1;
           if ( numLoadedModels === MODELS.length ) {
             setTimeout(function() {
               setModelsInWorld();
-            },1000);
-            
+            },1000);   
           }
         });
       }
+    }
+    function removeLoadingScreen(event) {
+      event.target.remove()
     }
 
   };
@@ -494,7 +517,7 @@ class App extends Component {
     delta = clock.getDelta();
 
     this.mixer.update( delta ); // plane animation
-
+    this.buildingMixer.update(delta);
     d = new Date();
     timeMins= d.getHours()*60+d.getMinutes();
     if (this.props.timelineActive === 1) {
@@ -766,6 +789,9 @@ class Container extends React.Component {
         
         <div id = "notLoggedInWarning">You’re not logged into your Deeplocal account! Log in to view Deeplocal’s virtual office.<Login/></div>
         <div id = "blocker" onClick = {this.closeWarning}/>
+        <div id = "loadingScreen">
+          <img src={DLLogo} id = "loadingLogo"/>
+        </div>
       </div>
     );
   }
