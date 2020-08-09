@@ -104,7 +104,7 @@ THREEx.DayNight.SunLight	= function(){
 		var phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
       light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
-      light.intensity=1;
+      light.intensity=0.7;
 		}else if( phase === 'twilight' ){
 		        light.intensity = 0.7;
 	        	light.color.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
@@ -317,7 +317,7 @@ class App extends Component {
     /// Floor ///
     var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
     var floorTexture = new THREE.TextureLoader().load(FloorTexture);
-    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.2, metalness: 0 } );
+    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.7, metalness: 0 } );
     var floor = new THREE.Mesh( geoFloor, matStdFloor );
     floor.receiveShadow = true;
     this.scene.add( floor );
@@ -331,7 +331,7 @@ class App extends Component {
     this.scene.add( this.sunLight.object3d );
 
     
-    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.05 );
+    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.5 );
     this.scene.add(ambiLight)
     /// end insert lights///
 
@@ -377,7 +377,7 @@ class App extends Component {
         ///END ADD PLANE///
 
         ///ADD BUILDING///
-        const dlBuilding = this.par.getObjectByName("/static/media/building.9ccf91d1.glb");
+        const dlBuilding = this.par.getObjectByName("/static/media/building.0741ca1a.glb");
         dlBuilding.position.set(0, 0.5, 0);
         this.windows = dlBuilding.getObjectByName("Windows");
         this.scene.add(dlBuilding) // adding it to the actual scene 
