@@ -776,6 +776,22 @@ class Container extends React.Component {
 
   };  
 
+  componentDidMount() {
+    var date = new Date()
+    let clockTimeHours = date.getHours();
+    let clockTimeMins = date.getMinutes();
+    let clockTimeMinsStr = clockTimeMins.toString();
+    if (clockTimeMinsStr.length ===1) { // otherwise,round hours get displayed as "7:0", not "7:00"
+    clockTimeMinsStr = "0"+clockTimeMinsStr;
+    }
+    let clockTime = clockTimeHours.toString() + ":"+clockTimeMinsStr;
+    let clockTimeDiv = document.getElementById("clockTime");
+    if (clockTimeDiv !== null) clockTimeDiv.innerHTML=clockTime;
+    window.setInterval(function () {
+      this.convertTimelineTimeToClockTime();
+    }.bind(this), 10000);
+  }
+  
   isTimelineActive(bool) {
     this.setState({timelineActive:bool})
   }
@@ -796,12 +812,24 @@ class Container extends React.Component {
       let clockTime = clockTimeHours.toString() + ":"+clockTimeMinsStr;
       let clockTimeDiv = document.getElementById("clockTime");
       if (clockTimeDiv !== null) clockTimeDiv.innerHTML=clockTime;
-      }};
+      } else if (this.state.timelineActive !==1 ) {
+        var date = new Date()
+        let clockTimeHours = date.getHours();
+        let clockTimeMins = date.getMinutes();
+        let clockTimeMinsStr = clockTimeMins.toString();
+        if (clockTimeMinsStr.length ===1) { // otherwise,round hours get displayed as "7:0", not "7:00"
+        clockTimeMinsStr = "0"+clockTimeMinsStr;
+        }
+        let clockTime = clockTimeHours.toString() + ":"+clockTimeMinsStr;
+        let clockTimeDiv = document.getElementById("clockTime");
+        if (clockTimeDiv !== null) clockTimeDiv.innerHTML=clockTime;
+      }
+  };
   render() {
     return (
       <div style = {style} id = "container">
         <div id = "appContainer">
-        <div id = "clockTime">{this.convertTimelineTimeToClockTime()}</div>
+        <div id = "clockTime"></div>
         <App timelineActive ={this.state.timelineActive} timelineTime = {this.state.time}/>
         </div>
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
