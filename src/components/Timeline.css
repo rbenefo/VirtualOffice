@@ -8,7 +8,6 @@
     width: 20px;
     z-index:10;
     top:110%;
-    /* transition: all 400ms cubic-bezier(.47,1.64,.41,.8) */
 }
 
 
@@ -19,9 +18,6 @@
 
 .ball:hover {
    background-color: rgb(218, 180, 78);
-}
-.ball.returnToOrigin {
-    transition: left 0.5s;
 }
 
 

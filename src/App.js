@@ -16,7 +16,6 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
-import FloorTexture from './assets/images/FloorGradient.jpg';
 import About from './components/About';
 import Timeline from './components/Timeline'
 import Login from './components/Login'
@@ -34,6 +33,7 @@ var sunTheta;
 var THREEx = {};
 var t = 0;
 var raycaster = new THREE.Raycaster();
+var date;
 
 var mouse = new THREE.Vector2();
 var intersected;
@@ -46,14 +46,13 @@ var darkMaterial = new THREE.MeshBasicMaterial( { color: "black" } );
 var materials = {};
 
 var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window146", 
-"Window147", "Window132", "Window133", "Window134", "Window135", "WindowLarge202", 
+"Window147", "Window132", "Window133", "Window134", "Window135", "window002", 
 "Window25", "Window26", "Window75", "Window76", "Window264", "Window265", "Window266", 
-"Window267", "WindowSide02", "WindowSide01", "Window55", "Window56", "Window57", 
-"Window58", "Window217", "Window218", "Window219", "Window220", "WindowSide04",
-"WindowSide03", "WindowLarge01"];
+"Window267", "Window55", "Window56", "Window57", "SideWindow07", "SideWindow12",
+"Window58", "Window217", "Window218", "Window219", "Window220"];
 
 var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", "Plane"];
-var hoverClips = ["ForkLIftEmptyAction", "CrateAction.001", "RightGarageAction", "ESTD.action.001", "2006.action.001", "ChalkyCarEmptyAction.002", "ChalkyEmptyAction.002", "cloud1Action", "cloud2|cloud2|cloud1Action|cloud2|cloud1Action", "cloud3Action"];
+var hoverClips = ["ForkLIftEmptyAction", "CrateAction.001", "RightGarageAction", "ESTD.action.001", "2006.action.001", "ChalkyCarEmptyAction.002", "ChalkyEmptyAction.002"];
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
 
 const style = {
@@ -64,10 +63,14 @@ var delta, d, timeMins;
 var __this;
 var appContainer;
 var data;
-let timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
+var timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
 var intersects, windowPopUp, popUpTitle, popUpText, object;
 
 var loginButton;
+var phase;
+var banner, drawCanvas, ctx, canvaTexture, words, line, testLine, metrics, testWidth;
+
+var forkLiftEmptyAnim, crateAction, rightGarageAction, chalkyCarEmptyAction, chalkyEmptyAction, ESTDAction, TWO006Action
 /// End Initialize Vars ///
 
 
@@ -92,24 +95,27 @@ THREEx.DayNight.SunLight	= function(){
   light.shadow.camera.bottom = - 10;
   light.shadow.camera.left = - 10;
   light.shadow.camera.right = 10;
-  light.shadow.camera.near = 0.1;
-  light.shadow.camera.far =40;
-  light.shadow.radius = 100000;
+  light.shadow.camera.near = 0.5;
+  light.shadow.camera.far =300;
+  light.shadow.bias = 0.001;
+  light.shadowDarkness = 0.2;
+  
+  light.shadow.radius = 10000;
   light.intensity = 2.5;
 
 	this.object3d	= light;
 	
 	this.update	= function(sunAngle){
 		light.position.x = 10;
-		light.position.y = Math.sin(sunAngle) * 100;
-		light.position.z = Math.cos(sunAngle) * 100;
-		var phase	= THREEx.DayNight.currentPhase(sunAngle)
+		light.position.y = Math.sin(sunAngle) * 60;
+		light.position.z = Math.cos(sunAngle) * 60;
+		phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
       light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*200)+55) + "," + (Math.floor(Math.sin(sunAngle)*200)+55) +")");
       light.intensity=2.5;
 
 		}else if( phase === 'twilight' ){
-		        light.intensity = 0.7;
+		        light.intensity = 2.5+3.46*sunAngle;
 	        	light.color.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
 		} else {
 			light.intensity	= 0;
@@ -229,7 +235,7 @@ class App extends Component {
     this.controls.dampingFactor= 0.2;
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
     this.controls.maxDistance = 60; //min zoom
-    this.controls.minDistance = 2; //max zoom
+    this.controls.minDistance = 5; //max zoom
     this.controls.minPolarAngle = Math.PI/10; //min camera angle
     this.controls.maxPolarAngle = Math.PI/2.5; //max camera angle
     
@@ -251,46 +257,34 @@ class App extends Component {
 
     this.par = new THREE.Group(); // init parent group for all objects in scene
 
-
-    /// Floor ///
-
-    // var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
-    // var floorTexture = new THREE.TextureLoader().load(FloorTexture);
-    // var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.7, metalness: 0 } );
-    // var floor = new THREE.Mesh( geoFloor, matStdFloor );
-    // floor.receiveShadow = true;
-    // this.scene.add( floor );
-
-    /// End Floor /// 
-
-
     /// insert lights ///
     this.sunLight	= new THREEx.DayNight.SunLight();
     this.scene.add( this.sunLight.object3d );
+    this.helper = new THREE.DirectionalLightHelper( this.sunLight.object3d, 5 );
+    this.scene.add(this.helper);
+
 
     
 
-    this.ambiLight = new THREE.AmbientLight( 0xFFFFFF, 0.3 );
+    this.ambiLight = new THREE.AmbientLight( 0xFFFFFF, 1.8 );
     this.scene.add(this.ambiLight)
-    this.hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1);
-    this.scene.add(this.hemiLight)
 
     /// end insert lights///
   };
 
   setLights = (sunAngle)=> {
-    let phase = THREEx.DayNight.currentPhase(sunAngle)
+    phase = THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
-      this.scene.background = new THREE.Color("rgb("+(Math.floor(Math.sin(sunAngle)*200))+","+ (Math.floor(Math.sin(sunAngle)*200)+38) + ",255)");
-		}else if( phase === 'twilight' ){
-      this.scene.background =new THREE.Color("rgb(0," + (120-Math.floor(Math.sin(sunAngle)*240*-1)) + "," + (255-Math.floor(Math.sin(sunAngle)*510*-1)) +")")
-		} else if (phase === "night"){
+      this.scene.background = new THREE.Color("rgb("+(Math.floor(Math.sin(sunAngle)*35*(-1))+235)+","+ (Math.floor(Math.sin(sunAngle)*6)+232) + ",255)");
+      this.ambiLight.intensity = 1.8;
+
+    }else if( phase === 'twilight' ){
+      this.scene.background =new THREE.Color("rgb("+(Math.floor(Math.sin(sunAngle)*470)+235)+"," + (232+Math.floor(Math.sin(sunAngle)*464)) + "," + (255+Math.floor(Math.sin(sunAngle)*510)) +")")
+      this.ambiLight.intensity = 1.8+3.07*sunAngle;
+
+    } else if (phase === "night"){
       this.scene.background =new THREE.Color("rgb(0,0, 0)");
-
       this.ambiLight.intensity = 0.2;
-      this.hemiLight.intensity = 0.05;
-
-
 		}
 
   }
@@ -302,7 +296,7 @@ class App extends Component {
     // get container dimensions and use them for scene sizing
     const width = appContainer.clientWidth;
     const height = appContainer.clientHeight;
-    var numLoadedModels = 0; // init local vars
+    let numLoadedModels = 0; // init local vars
     var dracoLoader = new DRACOLoader(); // prep loader
     dracoLoader.setDecoderPath( '/draco/gltf/' );
 
@@ -331,8 +325,9 @@ class App extends Component {
         ///END ADD PLANE///
 
         ///ADD BUILDING///
-        this.dlBuilding = this.par.getObjectByName("/static/media/building.0741ca1a.glb");
+        this.dlBuilding = this.par.getObjectByName("/static/media/building.9f97c129.glb");
         this.dlBuilding.position.set(0, 0.5, 0);
+        console.log(this.dlBuilding)
         this.windows = this.dlBuilding.getObjectByName("Windows");
         this.scene.add(this.dlBuilding) // adding it to the actual scene 
         this.buildingMixer = new THREE.AnimationMixer( this.dlBuilding );
@@ -376,15 +371,15 @@ class App extends Component {
         });
         // END GLOW WINDOWS //
 
-      var bloomPass85 = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85)
-      bloomPass85.threshold = 0.7;
-      bloomPass85.strength = 0.7;
-      bloomPass85.radius = 0.55;
+      var bloomPass = new UnrealBloomPass( new THREE.Vector2( width, height ), 1.5, 0.4, 0.85)
+      bloomPass.threshold = 0.7;
+      bloomPass.strength = 0.4;
+      bloomPass.radius = 0.2;
 
       this.bloomComposer.setSize( width, height )
       this.bloomComposer.renderToScreen = false;
 			this.bloomComposer.addPass( this.renderScene );
-      this.bloomComposer.addPass( bloomPass85 );
+      this.bloomComposer.addPass( bloomPass );
       
 
       var finalPass = new ShaderPass(
@@ -408,7 +403,7 @@ class App extends Component {
       loadingScreen.classList.add( 'fade-out' ); 
       setTimeout(function() {
         loadingScreen.parentNode.removeChild(loadingScreen);
-      },1500);   
+      },3000);   
       this.startAnimationLoop()
       
     };
@@ -420,8 +415,6 @@ class App extends Component {
 
       loader.load( model, function ( gltf ) {
         __this.model=gltf.scene;
-        console.log('model')
-        console.log(model)
         __this.model.name = model;
         __this.model.animations = gltf.animations;
         __this.par.add(__this.model)
@@ -438,8 +431,9 @@ class App extends Component {
     }
     function loadModels() {
       var loader = new GLTFLoader();
+      var m;
       for ( let i = 0; i < MODELS.length; ++ i ) {
-        var m = MODELS[ i ];
+        m = MODELS[ i ];
         loadGLBModel( m,loader, function () {
           numLoadedModels+=1;
           if ( numLoadedModels === MODELS.length ) {
@@ -466,8 +460,7 @@ class App extends Component {
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
-      // sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
-      sunTheta = Math.PI/3;
+      sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
     }
     t += 0.01;
     if (Math.abs(t-2*Math.PI) < 0.01) {
@@ -478,19 +471,12 @@ class App extends Component {
       this.planeRotateGroup.rotation.y=-t;
     }
     this.sunLight.update(sunTheta);
-
     this.scene.traverse( this.darkenNonBloomed );
     this.scene.background=new THREE.Color( 0x000000);
-
     this.bloomComposer.render();
-
     this.scene.traverse( this.restoreMaterial );
-    // this.scene.background=new THREE.Color( 0xd6ebff);
     this.setLights(sunTheta)
-
-
     this.finalComposer.render();
-
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
@@ -514,15 +500,12 @@ class App extends Component {
         }).catch(function (error) {
           if (error.response !== void(0)){
         if (error.response.status===401) {
-          let loginButton = document.getElementById("loginButton");
+          loginButton = document.getElementById("loginButton");
           if (loginButton.style.backgroundColor !== "#c45949") {
             loginButton.style.backgroundColor="#c45949";
           }
         }
       }
-
-          console.log("Axios error:")
-          console.log(error)
       });
     }
     }, 20000); // 20 seconds
@@ -537,11 +520,11 @@ class App extends Component {
         }
         function loopHighFives() {
           if (__this.props.timelineActive !== 1){
-            const banner = __this.plane.getObjectByName("Banner"); //rm const
-            var drawCanvas = document.createElement("CANVAS");
+            banner = __this.plane.getObjectByName("Banner"); //rm const
+            drawCanvas = document.createElement("CANVAS");
             drawCanvas.width = 1800;
             drawCanvas.height=1200;
-            var ctx = drawCanvas.getContext("2d");
+            ctx = drawCanvas.getContext("2d");
             ctx.font = "250px Quicksand";
             ctx.fillStyle = "white";
             ctx.textAlign="center";
@@ -549,7 +532,7 @@ class App extends Component {
             ctx = wrapText(ctx, result[i], (drawCanvas.width-20)/2, 250, drawCanvas.width-100, 350);
             ctx.textBaseline = "middle";
     
-            var canvaTexture=new THREE.CanvasTexture( drawCanvas );
+            canvaTexture=new THREE.CanvasTexture( drawCanvas );
             canvaTexture.wrapS = THREE.RepeatWrapping;
     
             banner.material	= new THREE.MeshStandardMaterial({
@@ -558,12 +541,12 @@ class App extends Component {
       
             })
         function wrapText(context, text, x, y, maxWidth, lineHeight) { // function from codepen.io/nishiohirokazu/pen/jjNyye (MIT license)
-          var words = text.split(' ');
-          var line = '';
-          for (var n = 0; n<words.length; n++) {
-            var testLine = line+words[n]+' ';
-            var metrics = context.measureText(testLine);
-            var testWidth = metrics.width;
+          words = text.split(' ');
+          line = '';
+          for (let n = 0; n<words.length; n++) {
+            testLine = line+words[n]+' ';
+            metrics = context.measureText(testLine);
+            testWidth = metrics.width;
             if (testWidth > maxWidth && n > 0) {
               context.fillText(line, x, y);
               line = words[n]+ ' ';
@@ -588,14 +571,12 @@ class App extends Component {
       }).catch(function (error) {
         if (error.response !== void(0)){
         if (error.response.status===401) {
-          let loginButton = document.getElementById("loginButton");
+          loginButton = document.getElementById("loginButton");
           if (loginButton.style.backgroundColor !== "#c45949") {
             loginButton.style.backgroundColor="#c45949";
           }
         }
       }
-        console.log("Axios error high five:")
-        console.log(error)
     });
     }, 60000);//60000 ; 1 mins
 }
@@ -625,11 +606,11 @@ class App extends Component {
         if (hoverContacts.includes(object.parent.name)) {
             if (object.parent.name === "ForkLift001") {
               popUpTitle.innerHTML = "IN HOUSE PRODUCTION"
-              popUpText.innerHTML = "Whether we’re making robots, software or socks, we do the vast majority of our production in house. This allows us to be nimble in our process and give our clients excellent visibility into each project, from start to finish. <br><br> We’re involved every step of the way from insight to install. We make our inventions ourselves: fast, flawlessly, and fully in-house in our 12,000 square foot prototyping facility."
-              let forkLiftEmptyAnim = this.hoverMixer.clipAction( this.buildingClips[7]);
+              popUpText.innerHTML = "Whether we’re making robots, software or socks, we do the vast majority of our production in house. This allows us to be nimble in our process and give our clients excellent visibility into each project, from start to finish."
+              forkLiftEmptyAnim = this.hoverMixer.clipAction( this.buildingClips[3]);
               forkLiftEmptyAnim.setLoop(THREE.LoopOnce);
               forkLiftEmptyAnim.clampWhenFinished = true
-              let crateAction = this.hoverMixer.clipAction( this.buildingClips[16] );
+              crateAction = this.hoverMixer.clipAction( this.buildingClips[12] );
               crateAction.setLoop( THREE.LoopOnce )
               crateAction.clampWhenFinished = true;
               forkLiftEmptyAnim.play().reset();
@@ -640,31 +621,35 @@ class App extends Component {
               popUpText.innerHTML = "Founded in Pittsburgh, grounded in Sharpsburg. We’re proud to be from a city of disruptors, innovators, and makers. Our office and state-of-the-art prototyping facility are located in the Old Fort Pitt Brewery building, nestled in Pittsburgh’s historic Sharpsburg neighborhood."
             } else if (object.parent.name==="chalky001") {
               popUpTitle.innerHTML = "CHALKBOT"
-              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making.<br><br>Most of our work is made up of custom inventions that are world firsts. Meet the Nike Chalkbot, the first use of robotics in advertising. "
+              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making."
 
             } else if (object.parent.name ==="GarageDoor_Right") {
               popUpTitle.innerHTML = "CHALKBOT"
-              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making.<br><br>Most of our work is made up of custom inventions that are world firsts. Meet the Nike Chalkbot, the first use of robotics in advertising. "
-              let rightGarageAction = this.hoverMixer.clipAction( this.buildingClips[22]);
-              let chalkyCarEmptyAction = this.hoverMixer.clipAction( this.buildingClips[19]);
-              let chalkyEmptyAction = this.hoverMixer.clipAction( this.buildingClips[20]);
-              let ESTDAction = this.hoverMixer.clipAction( this.buildingClips[21]);
-              let TWO006Action = this.hoverMixer.clipAction( this.buildingClips[18]);
+              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making. "
+              rightGarageAction = this.hoverMixer.clipAction( this.buildingClips[17]);
+              chalkyCarEmptyAction = this.hoverMixer.clipAction( this.buildingClips[14]);
+              chalkyEmptyAction = this.hoverMixer.clipAction( this.buildingClips[15]);
+              ESTDAction = this.hoverMixer.clipAction( this.buildingClips[16]);
+              TWO006Action = this.hoverMixer.clipAction( this.buildingClips[13]);
+
               rightGarageAction.clampWhenFinished = true;
               chalkyCarEmptyAction.clampWhenFinished = true;
               chalkyEmptyAction.clampWhenFinished = true;
               ESTDAction.clampWhenFinished = true;
               TWO006Action.clampWhenFinished = true;
+
               rightGarageAction.setLoop( THREE.LoopOnce )
               chalkyCarEmptyAction.setLoop( THREE.LoopOnce )
               chalkyEmptyAction.setLoop( THREE.LoopOnce )
               ESTDAction.setLoop( THREE.LoopOnce )
               TWO006Action.setLoop( THREE.LoopOnce )
+
               rightGarageAction.play().reset();
               chalkyCarEmptyAction.play().reset();
               chalkyEmptyAction.play().reset();
               ESTDAction.play().reset();
               TWO006Action.play().reset();
+
             } else if (object.parent.name ==="Plane") {
               popUpTitle.innerHTML = "EMPLOYEE HIGH FIVES"
               popUpText.innerHTML="Our team is comprised of creatives, marketers, strategists, technologists, engineers (mechanical, electrical, robotic, and software) and artists. See who's crushing it today."
@@ -683,7 +668,7 @@ class App extends Component {
             intersected = object;
             for (let j = 0; j < intersected.parent.children.length; j++) {
               intersected.parent.children[j].currentHex = intersected.parent.children[j].material.color.getHex();
-              intersected.parent.children[j].material = new MeshPhysicalMaterial({color:0x691524});
+              intersected.parent.children[j].material = new MeshPhysicalMaterial({color:0xc5a158});
             }
           }
         } else {
@@ -757,7 +742,7 @@ class Container extends React.Component {
   };  
 
   componentDidMount() {
-    var date = new Date()
+    date = new Date()
     let clockTimeHours = date.getHours();
     let clockTimeMins = date.getMinutes();
     let clockTimeMinsStr = clockTimeMins.toString();
@@ -769,14 +754,14 @@ class Container extends React.Component {
     if (clockTimeDiv !== null) clockTimeDiv.innerHTML=clockTime;
     window.setInterval(function () {
       this.convertTimelineTimeToClockTime();
-    }.bind(this), 10000);
+    }.bind(this), 1000);
   }
   
   isTimelineActive(bool) {
     this.setState({timelineActive:bool})
   }
   recordTimelineTime(timelinePercentage) {
-    var date = new Date(); // REMOVE VARS
+    date = new Date();
     timeMins= date.getHours()*60+date.getMinutes();
     var timelineTime = timeMins*timelinePercentage;
     this.setState({time: timelineTime})
@@ -793,7 +778,7 @@ class Container extends React.Component {
       let clockTimeDiv = document.getElementById("clockTime");
       if (clockTimeDiv !== null) clockTimeDiv.innerHTML=clockTime;
       } else if (this.state.timelineActive !==1 ) {
-        var date = new Date()
+        date = new Date()
         let clockTimeHours = date.getHours();
         let clockTimeMins = date.getMinutes();
         let clockTimeMinsStr = clockTimeMins.toString();
@@ -809,7 +794,7 @@ class Container extends React.Component {
     return (
       <div style = {style} id = "container">
         <div id = "appContainer">
-        <div id = "clockTime"></div>
+        <div id = "clockTime">{this.convertTimelineTimeToClockTime()}</div>
         <App timelineActive ={this.state.timelineActive} timelineTime = {this.state.time}/>
         </div>
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
@@ -817,7 +802,7 @@ class Container extends React.Component {
        <Login/>
 
          <div id = "loadingScreen">
-          <img src={DLLogo} id = "loadingLogo"/>
+          <img src={DLLogo} alt="" id = "loadingLogo"/>
         </div>
 
       </div>

@@ -52,8 +52,8 @@ export default class Timeline extends React.Component {
 
 
                 element.style.left= "680px";
-                element.classList.add("returnToOrigin");
-                element.addEventListener("transitionend", removeReturnToOrigin);
+                // element.classList.add("returnToOrigin");
+                // element.addEventListener("transitionend", removeReturnToOrigin);
                 // console.log(self.props.timelineActive)
 
             }
@@ -61,12 +61,10 @@ export default class Timeline extends React.Component {
         timelineWrapper.appendChild(container)        
 
         new Draggable(element, options); 
-        function removeReturnToOrigin(event) {
-            event.target.classList.remove("returnToOrigin")
+        // function removeReturnToOrigin(event) {
+        //     event.target.classList.remove("returnToOrigin")
 
-        }
-        // console.log("timeline")
-        // console.log(timeline)
+        // }
 
     }
     render() {

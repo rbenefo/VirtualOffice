@@ -7,29 +7,20 @@
     border-radius:5px;
     z-index:1;
     position:absolute;
-
     top:20%;
     left:90%;
     /* font */
     color:rgba(255,255,255);
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Work Sans', sans-serif;
     font-weight:bold;
     font-size:18px;
-    transition: all 400ms cubic-bezier(.47,1.64,.41,.8)
-
     }
-
-
-
-
-
 
 #aboutTextContainer {
     display: none;
     position:fixed;
     height:100%;
     width:100%;
- /*   border-radius:40px;*/
     top:0%;
     left:0%;
 }
@@ -42,7 +33,6 @@
 
 }
 #aboutButton:hover + #aboutTextContainer {
-
     display:block; 
     background-color:rgb(0, 0,0,0.4);
     backdrop-filter: blur(15px); 
@@ -63,14 +53,11 @@
 #virtualOffice{
     font-size:24px;
     font-weight:bold;
-
     display:block;
-    
-
 }
 #projectDescription {
     position:absolute;
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Work Sans', sans-serif;
     font-size:18px;
     border: 2px solid rgb(255, 255, 255);
     background-color:rgb(255, 255, 255,0.4);
@@ -81,6 +68,4 @@
     border-radius:4px;
     color:white;
     padding:50px;
-
-
 }
