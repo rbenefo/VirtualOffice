@@ -67,6 +67,7 @@ var data;
 let timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
 var intersects, windowPopUp, popUpTitle, popUpText, object;
 
+var loginButton;
 /// End Initialize Vars ///
 
 
@@ -95,13 +96,10 @@ THREEx.DayNight.SunLight	= function(){
   light.shadow.camera.far =40;
   light.shadow.radius = 100000;
   light.intensity = 2.5;
-  // light.shadow.mapSize.width = 2048; 
-  // light.shadow.mapSize.height = 2048;
 
 	this.object3d	= light;
 	
 	this.update	= function(sunAngle){
-
 		light.position.x = 10;
 		light.position.y = Math.sin(sunAngle) * 100;
 		light.position.z = Math.cos(sunAngle) * 100;
@@ -162,15 +160,11 @@ class App extends Component {
     this.updateModel()
     window.addEventListener("resize", this.handleWindowResize);
     window.addEventListener('mousemove', this.onDocumentMouseOver );
-
-
   }
 
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleWindowResize);
     window.removeEventListener("mousemove", this.onDocumentMouseOver);
-
-
     window.cancelAnimationFrame(this.requestID);
     this.controls.dispose();
   }
@@ -204,16 +198,12 @@ class App extends Component {
       }).catch(function (error) {
         if (error.response !== void(0)){
         if (error.response.status===401) {
-          let loginButton = document.getElementById("loginButton");
+          loginButton = document.getElementById("loginButton");
           if (loginButton.style.backgroundColor !== "#c45949") {
             loginButton.style.backgroundColor="#c45949";
           }
         }
       }
-
-
-        console.log("Axios error:")
-        console.log(error)
     });
     } 
   }
@@ -248,21 +238,12 @@ class App extends Component {
     this.renderer.setSize(width, height);
     this.renderer.physicallyCorrectLights = true;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
-
-
-
-
-    // this.renderer.setClearColor
-    // this.renderer.shadowMap.enabled = true;
-    // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     this.renderer.capabilities.maxTextureSize=1;
-
-    
-    // renderer.autoClear = false;
     this.renderer.setSize(width, height);
     // this.renderer.toneMapping = THREE.ReinhardToneMapping; // can set tonemapping for overall vibes
     // this.renderer.toneMappingExposure = Math.pow(1, 4.0);
-
     this.el.appendChild(this.renderer.domElement); // mount using React ref
 
     this.renderScene = new RenderPass( this.scene, this.camera )    
@@ -295,7 +276,6 @@ class App extends Component {
     this.scene.add(this.hemiLight)
 
     /// end insert lights///
-
   };
 
   setLights = (sunAngle)=> {
