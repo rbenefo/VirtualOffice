@@ -1,5 +1,5 @@
 import React from 'react';
-import DLKey from '../assets/images/dlKey.png'
+import DLKey from '../assets/images/DLkeyWhite.png'
 
 import "./Login.css"
 

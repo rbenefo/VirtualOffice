@@ -50,9 +50,9 @@ body {
   top:85%;
   z-index:10;
   color:white;
-  font-family:Quicksand;
-  font-weight: bold;
-  font-size: 20pt;
+  font-family: 'Roboto', sans-serif;;
+/*  font-weight: bold;*/
+  font-size: 18pt;
 }
 
 #loadingScreen{

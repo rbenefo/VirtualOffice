@@ -98,13 +98,13 @@ THREEx.DayNight.SunLight	= function(){
 	this.object3d	= light;
 	
 	this.update	= function(sunAngle){
-		light.position.x = -3;
-		light.position.y = Math.sin(sunAngle) * 20;
-		light.position.z = Math.cos(sunAngle) * 30;
+		light.position.x = 4;
+		light.position.y = Math.sin(sunAngle) * 120;
+		light.position.z = Math.cos(sunAngle) * 130;
 		var phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
       light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
-      light.intensity=1;
+      light.intensity=0.5;
 		}else if( phase === 'twilight' ){
 		        light.intensity = 0.7;
 	        	light.color.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
@@ -317,7 +317,7 @@ class App extends Component {
     /// Floor ///
     var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
     var floorTexture = new THREE.TextureLoader().load(FloorTexture);
-    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.2, metalness: 0 } );
+    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.1, metalness:0.8  } );
     var floor = new THREE.Mesh( geoFloor, matStdFloor );
     floor.receiveShadow = true;
     this.scene.add( floor );
@@ -331,8 +331,8 @@ class App extends Component {
     this.scene.add( this.sunLight.object3d );
 
     
-    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.05 );
-    this.scene.add(ambiLight)
+    var hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+    this.scene.add(hemiLight)
     /// end insert lights///
 
   };
@@ -508,8 +508,8 @@ class App extends Component {
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
     } else {
-      sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
-      // sunTheta = Math.PI/2;
+      // sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
+      sunTheta = Math.PI/3;
     }
     t += 0.01;
     if (Math.abs(t-2*Math.PI) < 0.01) {

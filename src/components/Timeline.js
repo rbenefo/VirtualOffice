@@ -32,6 +32,7 @@ export default class Timeline extends React.Component {
         container.appendChild(element)
         container.appendChild(timelineLine)
 
+    
         var options = {
             limit: container,
             setCursor: true,
@@ -72,6 +73,7 @@ export default class Timeline extends React.Component {
         return (
             <div id = "roof">
                 <div id = "timelineWrapper">
+
 
 
                 </div>

@@ -1,75 +1,76 @@
 #aboutButton {
-    background-color:rgb(255, 255, 255, 1);
-    border:none;
-    width:30px;
-    height:30px;
-    border-radius:2px;
+    /*background-color:rgb(255, 255, 255, 1);*/
+    background-color:rgb(255,255,255,0);
+    border: 2px solid rgb(255, 255, 255);
+    width:50px;
+    height:50px;
+    border-radius:5px;
     z-index:1;
     position:absolute;
-    top:12%;
-    left:3%;
-    color:rgba(0,0,0);
-    font-family: Quicksand;
+    top:20%;
+    left:90%;
+    /* font */
+    color:rgba(255,255,255);
+    font-family: 'Roboto', sans-serif;
     font-weight:bold;
-    font-size:15px;
-    transition: all 400ms cubic-bezier(.47,1.64,.41,.8);
+    font-size:18px;
+    transition: all 400ms cubic-bezier(.47,1.64,.41,.8)
 
-
-    
-}
+    }
 
 
 #aboutTextContainer {
-    display:none;
-    position:absolute;
-    height:300px;
-    width:300px;
-    border-radius:15px;
-    top:15%;
-    left:5%;
-
+    display: none;
+    position:fixed;
+    height:100%;
+    width:100%;
+ /*   border-radius:40px;*/
+    top:0%;
+    left:0%;
 }
 
-#aboutTextContainer .arrow {
-    position: absolute;
-
-  }
-  
 #aboutButton:hover {
-    background-color:rgba(197,161,88);
-    width:30px;
-    height:110px;
+    background-color:rgb(255, 255, 255);
+    width:50px;
+    height:50px;
     font-size:1px;
+
 }
 #aboutButton:hover + #aboutTextContainer {
-    display:block;
-    
-
-
+    display:block; 
+    background-color:rgb(0, 0,0,0.4);
+    backdrop-filter: blur(15px); 
 }
-/*#arrowLeft {
+
+
+#aboutContainer {
+    display: block;
     position:absolute;
-    width: 0; 
-    height: 0; 
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent; 
-    border-right:10px solid rgb(30,144,255); 
-    z-index:1;
-  }*/
+    height:100%;
+    width:100%;
+    top:0%;
+    left:0%;
+    border-radius:none;
+}
+
+
+#virtualOffice{
+    font-size:24px;
+    font-weight:bold;
+}
 #projectDescription {
     position:absolute;
-    font-family: Quicksand;
-    font-size:14px;
+    font-family: 'Roboto', sans-serif;
+    font-size:18px;
     border: 2px solid rgb(255, 255, 255);
-    background-color:rgb(255, 255, 255, 0.3);
-    left:5%;
-    top:-10%;
-    width:300px;
-    border-radius:5px;
+    background-color:rgb(255, 255, 255,0.4);
+    left:30%;
+    top:30%;
+    width:500px;
+    height:200px;
+    border-radius:4px;
     color:white;
-    padding:30px;
-/*    -moz-box-shadow:     -1px 3px 5px 0px rgb(100, 100, 100);
-    -webkit-box-shadow:  -1px 3px 5px 0px rgb(100, 100, 100);
-    box-shadow:          -1px 3px 5px 0px rgb(100, 100, 100);*/
-    font-weight:bold;
+    padding:50px;
+
+
 }
