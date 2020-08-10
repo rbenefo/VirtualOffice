@@ -16,13 +16,14 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
-import FloorTexture from './assets/images/greenGradient.png';
+import FloorTexture from './assets/images/FloorGradient.jpg';
 import About from './components/About';
 import Timeline from './components/Timeline'
 import Login from './components/Login'
 
 import DLLogo from './assets/images/dlLogo.jpg'
 import './App.css';
+import { MeshPhysicalMaterial } from "three";
 
 axios.defaults.withCredentials=true;
 
@@ -51,7 +52,8 @@ var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window1
 "Window58", "Window217", "Window218", "Window219", "Window220", "WindowSide04",
 "WindowSide03", "WindowLarge01"];
 
-
+var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", "Plane"];
+var hoverClips = ["ForkLIftEmptyAction", "CrateAction.001", "RightGarageAction", "ESTD.action.001", "2006.action.001", "ChalkyCarEmptyAction.002", "ChalkyEmptyAction.002", "cloud1Action", "cloud2|cloud2|cloud1Action|cloud2|cloud1Action", "cloud3Action"];
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
 
 const style = {
@@ -63,8 +65,9 @@ var __this;
 var appContainer;
 var data;
 let timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
-var intersects, windowPopUp, object;
-/// End Initialize Constants ///
+var intersects, windowPopUp, popUpTitle, popUpText, object;
+
+/// End Initialize Vars ///
 
 
 
@@ -91,20 +94,20 @@ THREEx.DayNight.SunLight	= function(){
   light.shadow.camera.near = 0.1;
   light.shadow.camera.far =40;
   light.shadow.radius = 100000;
-  light.intensity = 1;
+  light.intensity = 2.5;
   // light.shadow.mapSize.width = 2048; 
   // light.shadow.mapSize.height = 2048;
 
 	this.object3d	= light;
 	
 	this.update	= function(sunAngle){
-		light.position.x = -3;
-		light.position.y = Math.sin(sunAngle) * 20;
-		light.position.z = Math.cos(sunAngle) * 30;
+		light.position.x = 10;
+		light.position.y = Math.sin(sunAngle) * 100;
+		light.position.z = Math.cos(sunAngle) * 100;
 		var phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
-      light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*300)+55) + "," + (Math.floor(Math.sin(sunAngle)*300)) +")");
-      light.intensity=0.7;
+      light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*200)+55) + "," + (Math.floor(Math.sin(sunAngle)*200)+55) +")");
+      light.intensity=2.5;
 		}else if( phase === 'twilight' ){
 		        light.intensity = 0.7;
 	        	light.color.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
@@ -114,66 +117,6 @@ THREEx.DayNight.SunLight	= function(){
 	}	
 }
 
-
-
-THREEx.DayNight.Skydom		= function(){
-	var geometry	= new THREE.SphereGeometry( 700, 32, 15 );
-	var shader	= THREEx.DayNight.Skydom.Shader
-	var uniforms	= THREE.UniformsUtils.clone(shader.uniforms)
-	var material	= new THREE.ShaderMaterial({
-		vertexShader	: shader.vertexShader,
-		fragmentShader	: shader.fragmentShader,
-		uniforms	: uniforms,
-		side		: THREE.BackSide
-	});
-
-	var mesh	= new THREE.Mesh( geometry, material );
-	this.object3d	= mesh
-	
-	this.update	= function(sunAngle){
-		var phase	= THREEx.DayNight.currentPhase(sunAngle)
-		if( phase === 'day' ){
-			uniforms.topColor.value.set("rgb(0,120,255)");
-			uniforms.bottomColor.value.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*200)+55) + "," + (Math.floor(Math.sin(sunAngle)*200)) +")");
-		} else if( phase === 'twilight' ){
-			uniforms.topColor.value.set("rgb(0," + (120-Math.floor(Math.sin(sunAngle)*240*-1)) + "," + (255-Math.floor(Math.sin(sunAngle)*510*-1)) +")");
-			uniforms.bottomColor.value.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
-		} else {
-			uniforms.topColor.value.set('black')
-			uniforms.bottomColor.value.set('black');
-		}		
-	}
-}
-
-THREEx.DayNight.Skydom.Shader	= {
-	uniforms	: {
-		topColor	: { type: "c", value: new THREE.Color().setHSL( 0.6, 1, 0.75 ) },
-		bottomColor	: { type: "c", value: new THREE.Color( 0xffffff ) },
-		offset		: { type: "f", value: 400 },
-		exponent	: { type: "f", value: 0.6 },
-	},
-	vertexShader	: [
-		'varying vec3 vWorldPosition;',
-		'void main() {',
-		'	vec4 worldPosition = modelMatrix * vec4( position, 1.0 );',
-		'	vWorldPosition = worldPosition.xyz;',
-		'	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
-		'}',
-	].join('\n'),
-	fragmentShader	: [
-		'uniform vec3 topColor;',
-		'uniform vec3 bottomColor;',
-		'uniform float offset;',
-		'uniform float exponent;',
-
-		'varying vec3 vWorldPosition;',
-
-		'void main() {',
-		'	float h = normalize( vWorldPosition + offset ).y;',
-		'	gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( h, exponent ), 0.0 ) ), 1.0 );',
-		'}',
-	].join('\n'),
-}
 /// End Day night cycle///
 
 
@@ -217,11 +160,14 @@ class App extends Component {
     this.updateModel()
     window.addEventListener("resize", this.handleWindowResize);
     window.addEventListener('mousemove', this.onDocumentMouseOver );
+
+
   }
 
   componentWillUnmount() {
     window.removeEventListener("resize", this.handleWindowResize);
     window.removeEventListener("mousemove", this.onDocumentMouseOver);
+
 
     window.cancelAnimationFrame(this.requestID);
     this.controls.dispose();
@@ -279,22 +225,31 @@ class App extends Component {
     const height = appContainer.clientHeight;
     //camera
     this.scene = new THREE.Scene();
+
     this.camera = new THREE.PerspectiveCamera(60, width/height, 1, 10000); //init camera. 1, 1000 sets camera "Frustrum"; see docs
-    this.camera.position.set(-10, 10, 10); //set initial camera position
-    this.camera.lookAt(0, 5, 0); //set location camera initially points at 
+    this.camera.position.set(25, 35, 30); //set initial camera position
+    this.camera.lookAt(0, 25, 0); //set location camera initially points at 
     
     /// camera control ///
     this.controls = new OrbitControls(this.camera, this.el);
     this.controls.enableDamping = true;
+    this.controls.enablePan = false;
     this.controls.dampingFactor= 0.2;
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
-    // this.controls.maxDistance = 35; //min zoom
-    // this.controls.minDistance = 2; //max zoom
-    // this.controls.minPolarAngle = Math.PI/10; //min camera angle
-    // this.controls.maxPolarAngle = Math.PI/2; //max camera angle
+    this.controls.maxDistance = 60; //min zoom
+    this.controls.minDistance = 2; //max zoom
+    this.controls.minPolarAngle = Math.PI/10; //min camera angle
+    this.controls.maxPolarAngle = Math.PI/2.5; //max camera angle
+    
 
     this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false, powerPreference:"low-power"}); // init renderer
     this.renderer.setSize(width, height);
+    this.renderer.physicallyCorrectLights = true;
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+
+
+
+
     // this.renderer.setClearColor
     // this.renderer.shadowMap.enabled = true;
     // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
@@ -315,27 +270,45 @@ class App extends Component {
 
 
     /// Floor ///
-    var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
-    var floorTexture = new THREE.TextureLoader().load(FloorTexture);
-    var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.7, metalness: 0 } );
-    var floor = new THREE.Mesh( geoFloor, matStdFloor );
-    floor.receiveShadow = true;
-    this.scene.add( floor );
+    // var geoFloor = new THREE.BoxBufferGeometry( 400, 0.1, 400 ); /// ground
+    // var floorTexture = new THREE.TextureLoader().load(FloorTexture);
+    // var matStdFloor = new THREE.MeshStandardMaterial( { map:floorTexture, roughness: 0.7, metalness: 0 } );
+    // var floor = new THREE.Mesh( geoFloor, matStdFloor );
+    // floor.receiveShadow = true;
+    // this.scene.add( floor );
     /// End Floor /// 
 
 
-    this.skydom = new THREEx.DayNight.Skydom();
-    this.scene.add(this.skydom.object3d);
     /// insert lights ///
     this.sunLight	= new THREEx.DayNight.SunLight();
     this.scene.add( this.sunLight.object3d );
 
     
-    var ambiLight = new THREE.AmbientLight( "#FFFFFF", 0.5 );
-    this.scene.add(ambiLight)
+    this.ambiLight = new THREE.AmbientLight( 0xFFFFFF, 0.3 );
+    this.scene.add(this.ambiLight)
+    this.hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1);
+    this.scene.add(this.hemiLight)
+
     /// end insert lights///
 
   };
+
+  setLights = (sunAngle)=> {
+    let phase = THREEx.DayNight.currentPhase(sunAngle)
+		if( phase === 'day' ){
+      this.scene.background = new THREE.Color("rgb("+(Math.floor(Math.sin(sunAngle)*200))+","+ (Math.floor(Math.sin(sunAngle)*200)+38) + ",255)");
+		}else if( phase === 'twilight' ){
+      this.scene.background =new THREE.Color("rgb(0," + (120-Math.floor(Math.sin(sunAngle)*240*-1)) + "," + (255-Math.floor(Math.sin(sunAngle)*510*-1)) +")")
+		} else if (phase === "night"){
+      this.scene.background =new THREE.Color("rgb(0,0, 0)");
+
+      this.ambiLight.intensity = 0.2;
+      this.hemiLight.intensity = 0.05;
+
+
+		}
+
+  }
 
 
   load = () => {
@@ -355,37 +328,40 @@ class App extends Component {
         ///ADD PLANE///
         const planeGroup = this.par.getObjectByName("/static/media/airplane.ca054c40.glb");
         this.plane = planeGroup.getObjectByName("Plane")
-        // const banner = this.plane.getObjectByName("Banner");
         this.mixer = new THREE.AnimationMixer( planeGroup );
-        // this.mixer.clipAction(planeGroup.animations[1]).play();
         var planeClips = planeGroup.animations;
         planeClips.forEach(function(clip) {
           __this.mixer.clipAction( clip ).play();
         })
-        // this.mixer2 = new THREE.AnimationMixer( planeGroup );
-			  // this.mixer2.clipAction(planeGroup.animations[0]).play();
         var box = new THREE.Box3().setFromObject( planeGroup );
         // Reset mesh position:
         box.getCenter( planeGroup.position);
         planeGroup.position.multiplyScalar(-1);
         this.planeRotateGroup = new THREE.Group();
 
-        // this.scene.add(this.planeRotateGroup);
         this.planeRotateGroup.add( planeGroup);
         this.planeRotateGroup.rotation.z=Math.PI/6;
         this.planeRotateGroup.castShadow=true;
+
         ///END ADD PLANE///
 
         ///ADD BUILDING///
-        const dlBuilding = this.par.getObjectByName("/static/media/building.0741ca1a.glb");
-        dlBuilding.position.set(0, 0.5, 0);
-        this.windows = dlBuilding.getObjectByName("Windows");
-        this.scene.add(dlBuilding) // adding it to the actual scene 
-        this.buildingMixer = new THREE.AnimationMixer( dlBuilding );
-        var buildingClips = dlBuilding.animations;
-        buildingClips.forEach(function(clip) {
-          __this.buildingMixer.clipAction( clip ).play();
+        this.dlBuilding = this.par.getObjectByName("/static/media/building.0741ca1a.glb");
+        this.dlBuilding.position.set(0, 0.5, 0);
+        this.windows = this.dlBuilding.getObjectByName("Windows");
+        this.scene.add(this.dlBuilding) // adding it to the actual scene 
+        this.buildingMixer = new THREE.AnimationMixer( this.dlBuilding );
+        this.hoverMixer = new THREE.AnimationMixer( this.dlBuilding );
+
+        this.buildingClips = this.dlBuilding.animations;
+        this.buildingClips.forEach(function(clip) {
+          if (hoverClips.includes(clip.name) === false) __this.buildingMixer.clipAction( clip ).play();
         })
+        let streetLampBulb1 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r002");
+        let streetLampBulb2 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r001");
+        let lightBulbLamp= new THREE.PointLight( 0xffffff, 1, 0, 2 ); 
+        streetLampBulb1.add(lightBulbLamp)
+        streetLampBulb2.add(lightBulbLamp)
 
         ///END ADD BUILDING///
 
@@ -404,16 +380,13 @@ class App extends Component {
                   rectLight.rotateY(Math.PI/2)
                   node.add( rectLight )
             } else if(windowsPermaOff.includes(node.name)) {
-                node.material = new THREE.MeshBasicMaterial({
-                  color:"#060f2b", // window OFF 
+                node.material = new THREE.MeshPhongMaterial({
+                  color:"#000000", // window OFF 
                   });
             };
 
           };
-          const loadingScreen = document.getElementById( 'loadingScreen' );
-          loadingScreen.classList.add( 'fade-out' );        
-          console.log( 'Loading Complete!');
-          loadingScreen.addEventListener("transitionend", removeLoadingScreen)
+
 
         });
         // END GLOW WINDOWS //
@@ -445,7 +418,12 @@ class App extends Component {
 			this.finalComposer = new EffectComposer( this.renderer );
 			this.finalComposer.addPass( this.renderScene );
 			this.finalComposer.addPass( finalPass );
-
+      
+      const loadingScreen = document.getElementById( 'loadingScreen' );
+      loadingScreen.classList.add( 'fade-out' ); 
+      setTimeout(function() {
+        loadingScreen.parentNode.removeChild(loadingScreen);
+      },1500);   
       this.startAnimationLoop()
       
     };
@@ -453,15 +431,12 @@ class App extends Component {
     // load new model 
 
     function loadGLBModel( model, loader,onLoaded ) {
-      var loader = new GLTFLoader();
       loader.setDRACOLoader( dracoLoader );
 
       loader.load( model, function ( gltf ) {
         __this.model=gltf.scene;
         console.log('model')
         console.log(model)
-        console.log('anim')
-        console.log(gltf.animations)
         __this.model.name = model;
         __this.model.animations = gltf.animations;
         __this.par.add(__this.model)
@@ -485,13 +460,10 @@ class App extends Component {
           if ( numLoadedModels === MODELS.length ) {
             setTimeout(function() {
               setModelsInWorld();
-            },1000);   
+            },2000);   
           }
         });
       }
-    }
-    function removeLoadingScreen(event) {
-      event.target.remove()
     }
 
   };
@@ -503,6 +475,7 @@ class App extends Component {
 
     this.mixer.update( delta ); // plane animation
     this.buildingMixer.update(delta);
+    this.hoverMixer.update(delta);
     d = new Date();
     timeMins= d.getHours()*60+d.getMinutes();
     if (this.props.timelineActive === 1) {
@@ -520,12 +493,17 @@ class App extends Component {
       this.planeRotateGroup.rotation.y=-t;
     }
     this.sunLight.update(sunTheta);
-    this.skydom.update(sunTheta);
 
     this.scene.traverse( this.darkenNonBloomed );
+    this.scene.background=new THREE.Color( 0x000000);
+
     this.bloomComposer.render();
 
     this.scene.traverse( this.restoreMaterial );
+    // this.scene.background=new THREE.Color( 0xd6ebff);
+    this.setLights(sunTheta)
+
+
     this.finalComposer.render();
 
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
@@ -645,30 +623,90 @@ class App extends Component {
     raycaster.setFromCamera( mouse, this.camera );
     intersects = raycaster.intersectObjects( this.scene.children, true );
     windowPopUp = document.createElement("div");
-    windowPopUp.id = "windowPopup"
+    popUpTitle = document.createElement("div");
+    popUpText= document.createElement("div");
+
+    popUpTitle.id = "popUpTitle";
+    popUpText.id = "popUpText";
+
+    windowPopUp.appendChild(popUpTitle)
+    windowPopUp.appendChild(popUpText)
+
+    windowPopUp.id = "windowPopup";
 
     if ( intersects.length > 0 ) {
       object = intersects[ 0 ].object;
-      if (this.windows) {
-        if ((this.windows.getObjectByName(object.name) !==void(0)) && (this.windows.getObjectByName(object.name).type !=="RectAreaLight")) {
+      if (this.scene) {
+        if (hoverContacts.includes(object.parent.name)) {
+            if (object.parent.name === "ForkLift001") {
+              popUpTitle.innerHTML = "IN HOUSE PRODUCTION"
+              popUpText.innerHTML = "Whether we’re making robots, software or socks, we do the vast majority of our production in house. This allows us to be nimble in our process and give our clients excellent visibility into each project, from start to finish. <br><br> We’re involved every step of the way from insight to install. We make our inventions ourselves: fast, flawlessly, and fully in-house in our 12,000 square foot prototyping facility."
+              let forkLiftEmptyAnim = this.hoverMixer.clipAction( this.buildingClips[7]);
+              forkLiftEmptyAnim.setLoop(THREE.LoopOnce);
+              forkLiftEmptyAnim.clampWhenFinished = true
+              let crateAction = this.hoverMixer.clipAction( this.buildingClips[16] );
+              crateAction.setLoop( THREE.LoopOnce )
+              crateAction.clampWhenFinished = true;
+              forkLiftEmptyAnim.play().reset();
+              crateAction.play().reset();
+
+            } else if (object.parent.name === "Sign_FortPittThatsIt") {
+              popUpTitle.innerHTML = "MADE IN PITTSBURGH"
+              popUpText.innerHTML = "Founded in Pittsburgh, grounded in Sharpsburg. We’re proud to be from a city of disruptors, innovators, and makers. Our office and state-of-the-art prototyping facility are located in the Old Fort Pitt Brewery building, nestled in Pittsburgh’s historic Sharpsburg neighborhood."
+            } else if (object.parent.name==="chalky001") {
+              popUpTitle.innerHTML = "CHALKBOT"
+              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making.<br><br>Most of our work is made up of custom inventions that are world firsts. Meet the Nike Chalkbot, the first use of robotics in advertising. "
+
+            } else if (object.parent.name ==="GarageDoor_Right") {
+              popUpTitle.innerHTML = "CHALKBOT"
+              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making.<br><br>Most of our work is made up of custom inventions that are world firsts. Meet the Nike Chalkbot, the first use of robotics in advertising. "
+              let rightGarageAction = this.hoverMixer.clipAction( this.buildingClips[22]);
+              let chalkyCarEmptyAction = this.hoverMixer.clipAction( this.buildingClips[19]);
+              let chalkyEmptyAction = this.hoverMixer.clipAction( this.buildingClips[20]);
+              let ESTDAction = this.hoverMixer.clipAction( this.buildingClips[21]);
+              let TWO006Action = this.hoverMixer.clipAction( this.buildingClips[18]);
+              rightGarageAction.clampWhenFinished = true;
+              chalkyCarEmptyAction.clampWhenFinished = true;
+              chalkyEmptyAction.clampWhenFinished = true;
+              ESTDAction.clampWhenFinished = true;
+              TWO006Action.clampWhenFinished = true;
+              rightGarageAction.setLoop( THREE.LoopOnce )
+              chalkyCarEmptyAction.setLoop( THREE.LoopOnce )
+              chalkyEmptyAction.setLoop( THREE.LoopOnce )
+              ESTDAction.setLoop( THREE.LoopOnce )
+              TWO006Action.setLoop( THREE.LoopOnce )
+              rightGarageAction.play().reset();
+              chalkyCarEmptyAction.play().reset();
+              chalkyEmptyAction.play().reset();
+              ESTDAction.play().reset();
+              TWO006Action.play().reset();
+            } else if (object.parent.name ==="Plane") {
+              popUpTitle.innerHTML = "EMPLOYEE HIGH FIVES"
+              popUpText.innerHTML="Our team is comprised of creatives, marketers, strategists, technologists, engineers (mechanical, electrical, robotic, and software) and artists. See who's crushing it today."
+            }
             if (intersected !== object) {            
-            windowPopUp.innerHTML += object.name;
-            windowPopUp.style.left = event.clientX+'px';
-            windowPopUp.style.top = event.clientY+'px';
             if (appContainer.querySelector("#windowPopup") === null) {
             appContainer.appendChild(windowPopUp);
             }
             if (intersected) {
-              intersected.material.color.setHex( intersected.currentHex );
+              for (let j = 0; j < intersected.parent.children.length; j++) {
+                intersected.parent.children[j].material = new MeshPhysicalMaterial({color:intersected.parent.children[j].currentHex});
+              }
             } else {
               intersected = null;
             }
             intersected = object;
-            intersected.currentHex = intersected.material.color.getHex();
-						intersected.material.color.setHex( 0x691524 );
+            for (let j = 0; j < intersected.parent.children.length; j++) {
+              intersected.parent.children[j].currentHex = intersected.parent.children[j].material.color.getHex();
+              intersected.parent.children[j].material = new MeshPhysicalMaterial({color:0x691524});
+            }
           }
         } else {
-            if (intersected) intersected.material.color.setHex( intersected.currentHex );
+            if (intersected) {
+              for (let j = 0; j < intersected.parent.children.length; j++) {
+              intersected.parent.children[j].material.color.setHex( intersected.parent.children[j].currentHex );
+            }
+          }
             intersected = null;
             if ((windowPopUp !==void(0)) && (appContainer.querySelector("#windowPopup") !== null)){
                 appContainer.removeChild(appContainer.querySelector("#windowPopup"));
@@ -682,8 +720,9 @@ class App extends Component {
 
     }
     }
-
   }
+
+  
   darkenNonBloomed( obj ) {
     if ( obj.isMesh && bloomLayer.test( obj.layers ) === false ) {
       materials[ obj.uuid ] = obj.material;
@@ -731,7 +770,7 @@ class Container extends React.Component {
     this.recordTimelineTime = this.recordTimelineTime.bind(this);
 
   };  
-  
+
   isTimelineActive(bool) {
     this.setState({timelineActive:bool})
   }
@@ -743,16 +782,16 @@ class Container extends React.Component {
   }
   convertTimelineTimeToClockTime(){
     if ((this.state.time) && (this.state.timelineActive ===1)) {
-    let clockTimeHours = Math.floor(this.state.time/60)
-    let clockTimeMins = Math.trunc(this.state.time % 60);
-    let clockTimeMinsStr = clockTimeMins.toString();
-    if (clockTimeMinsStr.length ===1) { // otherwise,round hours get displayed as "7:0", not "7:00"
-    clockTimeMinsStr = "0"+clockTimeMinsStr;
-    }
-    let clockTime = clockTimeHours.toString() + ":"+clockTimeMinsStr;
-    return clockTime 
-    }
-  }
+      let clockTimeHours = Math.floor(this.state.time/60)
+      let clockTimeMins = Math.trunc(this.state.time % 60);
+      let clockTimeMinsStr = clockTimeMins.toString();
+      if (clockTimeMinsStr.length ===1) { // otherwise,round hours get displayed as "7:0", not "7:00"
+      clockTimeMinsStr = "0"+clockTimeMinsStr;
+      }
+      let clockTime = clockTimeHours.toString() + ":"+clockTimeMinsStr;
+      let clockTimeDiv = document.getElementById("clockTime");
+      if (clockTimeDiv !== null) clockTimeDiv.innerHTML=clockTime;
+      }};
   render() {
     return (
       <div style = {style} id = "container">

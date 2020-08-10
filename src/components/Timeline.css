@@ -1,7 +1,7 @@
 
 .ball {
 	border-radius: 2px;
-    background-color:rgba(0, 0, 0);
+    background-color:rgb(104, 121, 177);
     position:absolute;
     display: inline-block;
 	height: 30px;
@@ -20,7 +20,7 @@ box-shadow: 0px 0px 41px -5px rgba(117,117,117,1);
     background-color: rgb(197,161,88);
 }
 .ball.returnToOrigin {
-    transition: left 0.5s ease;
+    transition: left 0.5s;
 }
 
 

@@ -17,9 +17,7 @@ export default class About extends React.Component {
 
             <div id="projectDescription">
                 
-            This project was made by 
-            Tommy O'Halleran, Elena Bremner, and Roshan Benefo to 
-            create a community at Deeplocal.
+            Deeplocal’s virtual office was created to visualize our company culture, achievements, activity, and build a sense of community. This project was completed by Deeplocal’s summer 2020 interns, Roshan Benefo, Elena Bremner and Tommy O’Halleran.
             
             </div>
             </div>
