@@ -12,7 +12,6 @@ import PlaneGLB from './assets/glb/airplane.glb';
 import DLBuildingGLB from './assets/glb/building.glb';
 
 import axios from "axios";
-import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
@@ -27,7 +26,6 @@ import { MeshPhysicalMaterial } from "three";
 axios.defaults.withCredentials=true;
 
 /// Initialize Constants ///
-var stats = new Stats();
 var clock = new THREE.Clock();
 var sunTheta;
 var THREEx = {};
@@ -98,7 +96,6 @@ THREEx.DayNight.SunLight	= function(){
   light.shadow.camera.near = 0.5;
   light.shadow.camera.far =300;
   light.shadow.bias = 0.001;
-  light.shadowDarkness = 0.2;
   
   light.shadow.radius = 10000;
   light.intensity = 2.5;
@@ -216,7 +213,6 @@ class App extends Component {
 
   sceneSetup = () => {
     appContainer = document.getElementById("appContainer");
-    appContainer.appendChild( stats.dom );
 
     // get container dimensions and use them for scene sizing
     const width = appContainer.clientWidth;
@@ -260,12 +256,6 @@ class App extends Component {
     /// insert lights ///
     this.sunLight	= new THREEx.DayNight.SunLight();
     this.scene.add( this.sunLight.object3d );
-    this.helper = new THREE.DirectionalLightHelper( this.sunLight.object3d, 5 );
-    this.scene.add(this.helper);
-
-
-    
-
     this.ambiLight = new THREE.AmbientLight( 0xFFFFFF, 1.8 );
     this.scene.add(this.ambiLight)
 
@@ -327,7 +317,6 @@ class App extends Component {
         ///ADD BUILDING///
         this.dlBuilding = this.par.getObjectByName("/static/media/building.9f97c129.glb");
         this.dlBuilding.position.set(0, 0.5, 0);
-        console.log(this.dlBuilding)
         this.windows = this.dlBuilding.getObjectByName("Windows");
         this.scene.add(this.dlBuilding) // adding it to the actual scene 
         this.buildingMixer = new THREE.AnimationMixer( this.dlBuilding );
@@ -337,9 +326,10 @@ class App extends Component {
         this.buildingClips.forEach(function(clip) {
           if (hoverClips.includes(clip.name) === false) __this.buildingMixer.clipAction( clip ).play();
         })
-        let streetLampBulb1 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r002");
+        let streetLampBulb1 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-r001");
         let streetLampBulb2 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r001");
-        let lightBulbLamp= new THREE.PointLight( 0xffffff, 1, 0, 2 ); 
+        let lightBulbLamp= new THREE.PointLight( 0xffffff, 1, 100 ); 
+        console.log(this.dlBuilding)
         streetLampBulb1.add(lightBulbLamp)
         streetLampBulb2.add(lightBulbLamp)
 
@@ -449,7 +439,6 @@ class App extends Component {
 
   startAnimationLoop = () => {
     this.controls.update();
-    stats.update();
     delta = clock.getDelta();
 
     this.mixer.update( delta ); // plane animation
