@@ -51,7 +51,7 @@ var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window1
 
 var windowsToToggle = ["Window01", "Window02", "Window108", "Window109", 
                       "Window110", "Window111", "Window112", "Window113", "Window114", 
-                      "Window115", "Window124", "Window125", "Window126", "Window127",
+                      "Window115", "Window124", "Window125", "Window126", "Window127", "Window136",
                       "Window137", "Window138", "Window139", "Window148", "Window149",
                       "Window150", "Window151", "Window152", "Window153", "Window154",
                       "Window155", "Window164", "Window165", "Window166", "Window167",
@@ -64,7 +64,7 @@ var windowsToToggle = ["Window01", "Window02", "Window108", "Window109",
                       "Window160", "Window161", "Window162", "Window163", "Window168", 
                       "Window169", "Window170", "Window171"];
 
-var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", "Plane"];
+var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", "Plane", "grill_tank_08"];
 var hoverClips = ["ForkLIftEmptyAction", "CrateAction.001", "RightGarageAction", "ESTD.action.001", "2006.action.001", "ChalkyCarEmptyAction.002", "ChalkyEmptyAction.002"];
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
 
@@ -75,7 +75,6 @@ const style = {
 var delta, d, timeMins;
 var __this;
 var appContainer;
-var data;
 var timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
 var intersects, windowPopUp, popUpTitle, popUpText, object;
 
@@ -85,7 +84,8 @@ var banner, drawCanvas, ctx, canvaTexture, words, line, testLine, metrics, testW
 
 var forkLiftEmptyAnim, crateAction, rightGarageAction, chalkyCarEmptyAction, chalkyEmptyAction, ESTDAction, TWO006Action
 
-var deeplocalEmployeePopulation = 50; // hardcoded; change later
+var APIURL = 'https://api-dot-virtualoffice-285701.ue.r.appspot.com';
+
 /// End Initialize Vars ///
 
 
@@ -190,7 +190,7 @@ class App extends Component {
   }
   componentDidUpdate(prevProps, prevState) {
     if ((prevProps.timelineActive !== this.props.timelineActive) &&(this.props.timelineActive === 1)) {
-      axios.get('http://localhost:8081/slackRoute/getBulkData', {
+      axios.get('https://api-dot-virtualoffice-285701.ue.r.appspot.com/slackRoute/getBulkData', {
       }).then(function (res) {
       if (res.data.presenceData === undefined || res.data.presenceData.length === 0) {
           // array empty or does not exist
@@ -209,16 +209,20 @@ class App extends Component {
           totOnline += val;
         })
         let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
-        let frontWindows = this.windows.getObjectByName("FrontWindows");
+        let frontWindows = __this.windows.getObjectByName("FrontWindows");
         let toTurnOn = [];
         let x = windowsToToggle.sort(function() {
           return 0.5 - Math.random();
         });
-        toTurnOn = x.slice(windowsToToggle, totRoomsOn);
+        toTurnOn = x.slice(0, totRoomsOn);
         frontWindows.traverse(function(node) {
-          if (toTurnOn.includes(node.name)=== false) {
+          if ((toTurnOn.includes(node.name)=== false) && (windowsToToggle.includes(node.name) ===true)) {
+            node.material = new THREE.MeshBasicMaterial({
+              color:"#e0cc48", // window OFF  000000
+              });
+          } else if (windowsToToggle.includes(node.name) ===true)  {
             node.material = new THREE.MeshPhongMaterial({
-              color:"#000000", // window OFF 
+              color:"#000000", // window ON
               });
           }
         })
@@ -253,7 +257,6 @@ class App extends Component {
     /// camera control ///
     this.controls = new OrbitControls(this.camera, this.el);
     this.controls.enableDamping = true;
-    this.controls.enablePan = false;
     this.controls.dampingFactor= 0.2;
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
     this.controls.maxDistance = 60; //min zoom
@@ -289,7 +292,6 @@ class App extends Component {
   };
 
   setLights = (sunAngle)=> {
-    console.log(sunAngle)
     phase = THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
       this.scene.background = new THREE.Color("rgb("+(Math.floor(Math.sin(sunAngle)*35*(-1))+235)+","+ (Math.floor(Math.sin(sunAngle)*6)+232) + ",255)");
@@ -501,26 +503,30 @@ class App extends Component {
     var highFivesArr;
     setInterval(function() {
       if (__this.props.timelineActive !== 1){ 
-        axios.get('http://localhost:8081/slackRoute/getPresence', {
+        axios.get('https://api-dot-virtualoffice-285701.ue.r.appspot.com/slackRoute/getPresence', {
         }).then(function (res) {
-            data = res.data;
+            var data = res.data;
             var totOnline = 0;
             data.forEach(function(val) {
               totOnline += val;
             })
             let totRoomsOn = Math.floor((totOnline/data.length)*windowsToToggle.length);
-            let frontWindows = this.windows.getObjectByName("FrontWindows");
+            let frontWindows = __this.windows.getObjectByName("FrontWindows");
             let toTurnOn = [];
             let x = windowsToToggle.sort(function() {
               return 0.5 - Math.random();
             });
-            toTurnOn = x.slice(windowsToToggle, totRoomsOn);
+            toTurnOn = x.slice(0, totRoomsOn);
             frontWindows.traverse(function(node) {
-              if (toTurnOn.includes(node.name)=== false) {
-                node.material = new THREE.MeshPhongMaterial({
-                  color:"#000000", // window OFF 
+              if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) === true)) {
+                node.material = new THREE.MeshBasicMaterial({
+                  color:"#e0cc48", // window ON 
                   });
-              }
+              } else if (windowsToToggle.includes(node.name) === true) {
+                node.material = new THREE.MeshPhongMaterial({
+                  color:"#000000", // window OFF
+                  });
+              }    
             })
         }).catch(function (error) {
           if (error.response !== void(0)){
@@ -533,9 +539,9 @@ class App extends Component {
       }
       });
     }
-    }, 20000); // 20 seconds
+    }, 10000); // 20 seconds
     setInterval(function() {
-      axios.get('http://localhost:8081/slackRoute/getHighFives', {
+      axios.get('https://api-dot-virtualoffice-285701.ue.r.appspot.com/slackRoute/getHighFives', {
       }).then(function (res) {
         highFivesArr = res.data;
         let result = highFivesArr.map(a => {if (a.user ==="U017PEP5XV0") return a.text}); //replace U017PEP5XV0 with High Five bot        

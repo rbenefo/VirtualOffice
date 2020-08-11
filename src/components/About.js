@@ -17,7 +17,8 @@ export default class About extends React.Component {
             <div id="arrowLeft"></div>
 
             <div id="projectDescription">
-                
+            <div id = "virtualOffice">Virtual Office</div> <br></br> 
+
             Deeplocal’s virtual office was created to visualize our company culture, achievements, activity, and build a sense of community. This project was completed by Deeplocal’s summer 2020 interns, Roshan Benefo, Elena Bremner and Tommy O’Halleran.
             
             </div>
