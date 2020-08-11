@@ -49,6 +49,21 @@ var windowsPermaOff = ["Window05","Window06", "Window144", "Window145", "Window1
 "Window267", "Window55", "Window56", "Window57", "SideWindow07", "SideWindow12",
 "Window58", "Window217", "Window218", "Window219", "Window220"];
 
+var windowsToToggle = ["Window01", "Window02", "Window108", "Window109", 
+                      "Window110", "Window111", "Window112", "Window113", "Window114", 
+                      "Window115", "Window124", "Window125", "Window126", "Window127",
+                      "Window137", "Window138", "Window139", "Window148", "Window149",
+                      "Window150", "Window151", "Window152", "Window153", "Window154",
+                      "Window155", "Window164", "Window165", "Window166", "Window167",
+                      "Window96", "Window97", "Window98", "Window99", "Window03", 
+                      "Window04", "Window100", "Window101", "Window102", "Window103",
+                      "Window116", "Window117", "Window118", "Window119", "Window120",
+                      "Window121", "Window122", "Window123", "Window128", "Window129",
+                      "Window130", "Window131", "Window140", "Window141", "Window142",
+                      "Window143", "Window156", "Window157", "Window158", "Window159", 
+                      "Window160", "Window161", "Window162", "Window163", "Window168", 
+                      "Window169", "Window170", "Window171"];
+
 var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", "Plane"];
 var hoverClips = ["ForkLIftEmptyAction", "CrateAction.001", "RightGarageAction", "ESTD.action.001", "2006.action.001", "ChalkyCarEmptyAction.002", "ChalkyEmptyAction.002"];
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
@@ -69,6 +84,8 @@ var phase;
 var banner, drawCanvas, ctx, canvaTexture, words, line, testLine, metrics, testWidth;
 
 var forkLiftEmptyAnim, crateAction, rightGarageAction, chalkyCarEmptyAction, chalkyEmptyAction, ESTDAction, TWO006Action
+
+var deeplocalEmployeePopulation = 50; // hardcoded; change later
 /// End Initialize Vars ///
 
 
@@ -112,7 +129,7 @@ THREEx.DayNight.SunLight	= function(){
       light.intensity=2.5;
 
 		}else if( phase === 'twilight' ){
-		        light.intensity = 2.5+3.46*sunAngle;
+		        light.intensity = 2.5+3.46*Math.sin(sunAngle);
 	        	light.color.set("rgb(" + (255-Math.floor(Math.sin(sunAngle)*510*-1)) + "," + (55-Math.floor(Math.sin(sunAngle)*110*-1)) + ",0)");
 		} else {
 			light.intensity	= 0;
@@ -178,7 +195,6 @@ class App extends Component {
       if (res.data.presenceData === undefined || res.data.presenceData.length === 0) {
           // array empty or does not exist
       } else {
-        console.log(res)
         timeArr = (res.data.presenceData.map(function(value,index) { 
                     return value[res.data.presenceData[0].length-1]; 
                   }));
@@ -188,15 +204,25 @@ class App extends Component {
         });        
         relevantIndex = (timeArr.indexOf(closest));
         relevantPresence = res.data.presenceData[relevantIndex];
-        relevantActivity = res.data.activityMetricData[relevantIndex];
-        if (relevantPresence[2] === 1){
-          // __this.bloomPass2.strength = 1.2;
-          // __this.circleWindow.material.color.setHex( 0xe0cc48 );
-        } else {
+        var totOnline = 0;
+        relevantPresence.forEach(function(val) {
+          totOnline += val;
+        })
+        let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
+        let frontWindows = this.windows.getObjectByName("FrontWindows");
+        let toTurnOn = [];
+        let x = windowsToToggle.sort(function() {
+          return 0.5 - Math.random();
+        });
+        toTurnOn = x.slice(windowsToToggle, totRoomsOn);
+        frontWindows.traverse(function(node) {
+          if (toTurnOn.includes(node.name)=== false) {
+            node.material = new THREE.MeshPhongMaterial({
+              color:"#000000", // window OFF 
+              });
+          }
+        })
 
-          // __this.bloomPass2.strength = 0.1;
-          // __this.circleWindow.material.color.setHex( 0x18072e );
-        }
       };
       }).catch(function (error) {
         if (error.response !== void(0)){
@@ -263,6 +289,7 @@ class App extends Component {
   };
 
   setLights = (sunAngle)=> {
+    console.log(sunAngle)
     phase = THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
       this.scene.background = new THREE.Color("rgb("+(Math.floor(Math.sin(sunAngle)*35*(-1))+235)+","+ (Math.floor(Math.sin(sunAngle)*6)+232) + ",255)");
@@ -270,7 +297,7 @@ class App extends Component {
 
     }else if( phase === 'twilight' ){
       this.scene.background =new THREE.Color("rgb("+(Math.floor(Math.sin(sunAngle)*470)+235)+"," + (232+Math.floor(Math.sin(sunAngle)*464)) + "," + (255+Math.floor(Math.sin(sunAngle)*510)) +")")
-      this.ambiLight.intensity = 1.8+3.07*sunAngle;
+      this.ambiLight.intensity = 1.8+3.07*Math.sin(sunAngle);
 
     } else if (phase === "night"){
       this.scene.background =new THREE.Color("rgb(0,0, 0)");
@@ -329,7 +356,6 @@ class App extends Component {
         let streetLampBulb1 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-r001");
         let streetLampBulb2 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r001");
         let lightBulbLamp= new THREE.PointLight( 0xffffff, 1, 100 ); 
-        console.log(this.dlBuilding)
         streetLampBulb1.add(lightBulbLamp)
         streetLampBulb2.add(lightBulbLamp)
 
@@ -478,14 +504,24 @@ class App extends Component {
         axios.get('http://localhost:8081/slackRoute/getPresence', {
         }).then(function (res) {
             data = res.data;
-            // var rbenefoOnline = data.find(x => x.real_name === 'rbenefo').online;
-            // if (rbenefoOnline === 1){
-            //   // __this.bloomPass2.strength = 1.2;
-            //   // __this.circleWindow.material.color.setHex( 0xe0cc48);
-            // } else {
-            //   // __this.bloomPass2.strength = 0.1;
-            //   // __this.circleWindow.material.color.setHex( 0x18072e);
-            // }
+            var totOnline = 0;
+            data.forEach(function(val) {
+              totOnline += val;
+            })
+            let totRoomsOn = Math.floor((totOnline/data.length)*windowsToToggle.length);
+            let frontWindows = this.windows.getObjectByName("FrontWindows");
+            let toTurnOn = [];
+            let x = windowsToToggle.sort(function() {
+              return 0.5 - Math.random();
+            });
+            toTurnOn = x.slice(windowsToToggle, totRoomsOn);
+            frontWindows.traverse(function(node) {
+              if (toTurnOn.includes(node.name)=== false) {
+                node.material = new THREE.MeshPhongMaterial({
+                  color:"#000000", // window OFF 
+                  });
+              }
+            })
         }).catch(function (error) {
           if (error.response !== void(0)){
         if (error.response.status===401) {
