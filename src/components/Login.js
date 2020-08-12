@@ -17,7 +17,7 @@ export default class Login extends React.Component {
     render() {
         return (
             <div id = "loginButtonContainer">
-            <input type = "image" alt="" src={DLKey} id = "loginButton" value = "key" onClick={(e) => {e.preventDefault();window.location.href='https://api-dot-virtualoffice-285701.ue.r.appspot.com/auth/google';}}/>
+            <input type = "image" alt="" src={DLKey} id = "loginButton" value = "key" onClick={(e) => {e.preventDefault();window.location.href='https://virtualoffice-285701.ue.r.appspot.com/api/auth/google';}}/>
             </div>
         );
     };

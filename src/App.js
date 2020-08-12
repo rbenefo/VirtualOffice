@@ -18,7 +18,7 @@ import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLigh
 import About from './components/About';
 import Timeline from './components/Timeline'
 import Login from './components/Login'
-
+import Onboard from './components/Onboard'
 import DLLogo from './assets/images/dlLogo.jpg'
 import DLFlagLogo from './assets/images/DLFlagLogo.jpg'
 
@@ -89,7 +89,7 @@ var forkLiftEmptyAnim, crateAction, rightGarageAction, chalkyCarEmptyAction, cha
 
 var totRoomsOnTemp = 10000; // defined as an unrealistic value to force, on init, to be reassigned
 
-
+var dhours;
 
 /// End Initialize Vars ///
 
@@ -173,11 +173,13 @@ class App extends Component {
     this.myRef = React.createRef();
     this.state = {
       time:"",
+      bulkData:[],
     };
     this.load = this.load.bind(this);
     this.startAnimationLoop = this.startAnimationLoop.bind(this);
     this.updateModel = this.updateModel.bind(this);
     this.onDocumentMouseOver = this.onDocumentMouseOver.bind(this);
+    this.updateTimelineData = this.updateTimelineData.bind(this);
   };
   componentDidMount() {
     this.sceneSetup();
@@ -194,55 +196,10 @@ class App extends Component {
     this.controls.dispose();
   }
   componentDidUpdate(prevProps, prevState) {
+    __this = this;
     if ((prevProps.timelineActive !== this.props.timelineActive) &&(this.props.timelineActive === 1)) {
-      axios.get('https://api-dot-virtualoffice-285701.ue.r.appspot.com/slackRoute/getBulkData', {
-      }).then(function (res) {
-      if (res.data.presenceData === undefined || res.data.presenceData.length === 0) {
-          // array empty or does not exist
-      } else {
-        timeArr = (res.data.presenceData.map(function(value,index) { 
-                    return value[res.data.presenceData[0].length-1]; 
-                  }));
-        goal = __this.props.timelineTime;
-        closest = timeArr.reduce(function(prev, curr) {
-          return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
-        });        
-        relevantIndex = (timeArr.indexOf(closest));
-        relevantPresence = res.data.presenceData[relevantIndex];
-        var totOnline = 0;
-        relevantPresence.forEach(function(val) {
-          totOnline += val;
-        })
-        let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
-        let frontWindows = __this.windows.getObjectByName("FrontWindows");
-        let toTurnOn = [];
-        let x = windowsToToggle.sort(function() {
-          return 0.5 - Math.random();
-        });
-        toTurnOn = x.slice(0, totRoomsOn);
-        frontWindows.traverse(function(node) {
-          if ((toTurnOn.includes(node.name)=== false) && (windowsToToggle.includes(node.name) ===true)) {
-            node.material = new THREE.MeshBasicMaterial({
-              color:"#e0cc48", // window OFF  000000
-              });
-          } else if (windowsToToggle.includes(node.name) ===true)  {
-            node.material = new THREE.MeshPhongMaterial({
-              color:"#000000", // window ON
-              });
-          }
-        })
+      console.log("DID UPDATE")
 
-      };
-      }).catch(function (error) {
-        if (error.response !== void(0)){
-        if (error.response.status===401) {
-          loginButton = document.getElementById("loginButton");
-          if (loginButton.style.backgroundColor !== "#C58158") {
-            loginButton.style.backgroundColor="#C58158";
-          }
-        }
-      }
-    });
     } 
   }
 
@@ -266,8 +223,8 @@ class App extends Component {
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
     this.controls.maxDistance = 60; //min zoom
     this.controls.minDistance = 5; //max zoom
-    // this.controls.minPolarAngle = Math.PI/10; //min camera angle
-    // this.controls.maxPolarAngle = Math.PI/2.5; //max camera angle
+    this.controls.minPolarAngle = Math.PI/10; //min camera angle
+    this.controls.maxPolarAngle = Math.PI/2.5; //max camera angle
     
 
     this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false, powerPreference:"low-power"}); // init renderer
@@ -466,7 +423,6 @@ class App extends Component {
       loader.load( model, function ( gltf ) {
         __this.model=gltf.scene;
         __this.model.name = model;
-        console.log(model)
         __this.model.animations = gltf.animations;
         __this.par.add(__this.model)
 
@@ -506,9 +462,13 @@ class App extends Component {
     this.buildingMixer.update(delta);
     this.hoverMixer.update(delta);
     d = new Date();
-    timeMins= d.getHours()*60+d.getMinutes();
+    dhours = d.getUTCHours()-4;
+    if (dhours < 0) dhours = 24+dhours;
+
+    timeMins= dhours*60+d.getMinutes();
     if (this.props.timelineActive === 1) {
       sunTheta = (Math.floor(this.props.timelineTime/4)-120)*Math.PI/180; // start at 8 am
+      this.updateTimelineData()
     } else {
       sunTheta = (Math.floor(timeMins/4)-120)*Math.PI/180; // start at 8 am
     }
@@ -530,13 +490,81 @@ class App extends Component {
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
+  updateTimelineData() {
+      console.log("timelineactive")
+      console.log("REees")
+      console.log(this.state.bulkData.presenceData.length)
+      if (this.state.bulkData !== []) {
+      if (this.state.bulkData.presenceData === undefined || this.state.bulkData.presenceData.length === 0) {
+        // array empty or does not exist
+    } else {
+      timeArr = (this.state.bulkData.presenceData.map(function(value,index) { 
+                  return value[this.state.bulkData.presenceData[0].length-1]; 
+                }));
+    };
+      console.log("timeArr")
+      console.log(timeArr)
+      goal = this.props.timelineTime;
+      console.log("Goal")
+      console.log(goal)
 
+      closest = timeArr.reduce(function(prev, curr) {
+        return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
+      });        
+      console.log("closest")
+      console.log(closest)
+      relevantIndex = (timeArr.indexOf(closest));
+      relevantPresence = this.state.bulkData.presenceData[relevantIndex];
+      console.log("relevantPresence")
+      console.log(relevantPresence)
+      var totOnline = 0;
+      relevantPresence.forEach(function(val) {
+        totOnline += val;
+      })
+      console.log("totOnline")
+      console.log(totOnline)
+      let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
+      let frontWindows = __this.windows.getObjectByName("FrontWindows");
+      let toTurnOn = [];
+      let x = windowsToToggle.sort(function() {
+        return 0.5 - Math.random();
+      });
+      toTurnOn = x.slice(0, totRoomsOn);
+      frontWindows.traverse(function(node) {
+        if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) ===true)) {
+          node.material = new THREE.MeshBasicMaterial({
+            color:"#e0cc48", // window ON  000000
+            });
+        } else if (windowsToToggle.includes(node.name) ===true)  {
+          node.material = new THREE.MeshPhongMaterial({
+            color:"#000000", // window ON
+            });
+        }
+      })
+    }};
   updateModel() {
     __this = this;
     var highFivesArr;
     setInterval(function() {
+      axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getBulkData', {
+      }).then(function (res) {
+        console.log("res")
+        console.log(res)
+        __this.setState({bulkData:res.data});
+      }).catch(function (error) {
+        if (error.response !== void(0)){
+        if (error.response.status===401) {
+          loginButton = document.getElementById("loginButton");
+          if (loginButton.style.backgroundColor !== "#C58158") {
+            loginButton.style.backgroundColor="#C58158";
+          }
+        }
+      }
+    });
+    }, 60000); // every minute
+    setInterval(function() {
       if (__this.props.timelineActive !== 1){ 
-        axios.get('https://api-dot-virtualoffice-285701.ue.r.appspot.com/slackRoute/getPresence', {
+        axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getPresence', {
         }).then(function (res) {
             var data = res.data;
             var totOnline = 0;
@@ -576,7 +604,7 @@ class App extends Component {
     }
     }, 10000); // 20 seconds
     setInterval(function() {
-      axios.get('https://api-dot-virtualoffice-285701.ue.r.appspot.com/slackRoute/getHighFives', {
+      axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getHighFives', {
       }).then(function (res) {
         highFivesArr = res.data;
         let result = highFivesArr.map(a => {if (a.user ==="U017PEP5XV0") return a.text}); //replace U017PEP5XV0 with High Five bot        
@@ -692,7 +720,7 @@ class App extends Component {
 
             } else if (object.parent.name ==="GarageDoor_Right") {
               popUpTitle.innerHTML = "CHALKBOT"
-              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making. "
+              popUpText.innerHTML = "Deeplocal disrupted the industry with Chalkbot, the first use of robotics in advertising. Since then, we’ve created award-winning interactive experiences for the world’s most innovative brands."
               rightGarageAction = this.hoverMixer.clipAction( this.buildingClips[18]);
               chalkyCarEmptyAction = this.hoverMixer.clipAction( this.buildingClips[15]);
               chalkyEmptyAction = this.hoverMixer.clipAction( this.buildingClips[16]);
@@ -823,7 +851,8 @@ class Container extends React.Component {
 
   componentDidMount() {
     date = new Date()
-    let clockTimeHours = date.getHours();
+    let clockTimeHours = date.getUTCHours()-4;
+    if (clockTimeHours < 0) clockTimeHours = 24+clockTimeHours;
     let clockTimeMins = date.getMinutes();
     let clockTimeMinsStr = clockTimeMins.toString();
     if (clockTimeMinsStr.length ===1) { // otherwise,round hours get displayed as "7:0", not "7:00"
@@ -842,7 +871,9 @@ class Container extends React.Component {
   }
   recordTimelineTime(timelinePercentage) {
     date = new Date();
-    timeMins= date.getHours()*60+date.getMinutes();
+    let timeHours = date.getUTCHours()-4;
+    if (timeHours < 0) timeHours = 24+timeHours;
+    timeMins= timeHours*60+date.getMinutes();
     var timelineTime = timeMins*timelinePercentage;
     this.setState({time: timelineTime})
   }
@@ -859,7 +890,9 @@ class Container extends React.Component {
       if (clockTimeDiv !== null) clockTimeDiv.innerHTML=clockTime;
       } else if (this.state.timelineActive !==1 ) {
         date = new Date()
-        let clockTimeHours = date.getHours();
+        let clockTimeHours = date.getUTCHours()-4;
+        if (clockTimeHours < 0) clockTimeHours = 24+clockTimeHours;
+    
         let clockTimeMins = date.getMinutes();
         let clockTimeMinsStr = clockTimeMins.toString();
         if (clockTimeMinsStr.length ===1) { // otherwise,round hours get displayed as "7:0", not "7:00"
@@ -880,7 +913,7 @@ class Container extends React.Component {
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
         
        <Login/>
-
+       <Onboard/>
          <div id = "loadingScreen">
           <img src={DLLogo} alt="" id = "loadingLogo"/>
         </div>

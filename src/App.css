@@ -34,7 +34,7 @@ body {
   background-color:black;
   width:320px;
   z-index:1;
-  font-family: 'Work Sans', sans-serif;
+  font-family: 'Overpass', sans-serif;
   -webkit-box-shadow: 2px 10px 40px 5px #1d1d1d;
   -moz-box-shadow: 2px 10px 40px 5px #1d1d1d;
   box-shadow: 2px 10px 40px 5px #1d1d1d;
@@ -52,7 +52,7 @@ body {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;    
   box-sizing: border-box;  
-  font-family: 'Work Sans', sans-serif;
+  font-family: 'Overpass', sans-serif;
   font-weight: bold;
   font-size:18px;    
   border-top-left-radius: 5px;
@@ -65,7 +65,7 @@ body {
   padding-bottom:30px;
   text-align:left;
   top:0;
-  font-family: 'Work Sans', sans-serif;
+  font-family: 'Overpass', sans-serif;
   margin:35px;
   color:white;
 }
@@ -74,11 +74,11 @@ body {
   position:absolute;
   width:100px;
   height:50px;
-  left:50%;
+  left:45%;
   top:85%;
   z-index:10;
   color:white;
-  font-family: 'Work Sans', sans-serif;
+  font-family: 'Overpass', sans-serif;
   font-size: 18pt;
 }
 
