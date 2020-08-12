@@ -496,6 +496,7 @@ class App extends Component {
       console.log(this.state.bulkData.presenceData)
       if (this.state.bulkData !== []) {
         if ( typeof this.state.bulkData.presenceData !== "undefined" && this.state.bulkData.presenceData) {
+          if (this.state.bulkData.presenceData.length > 0) {
           console.log("timeArr")
           console.log(timeArr)
           goal = this.props.timelineTime;
@@ -542,7 +543,7 @@ class App extends Component {
                     }));
     
        
-        }
+        }};
      };
     };
   updateModel() {
