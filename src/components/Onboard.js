@@ -15,19 +15,21 @@ export default class Onboard extends React.Component {
             <div id = "onboardContainer">
                 <div id = "text">
                     <table id = "textTable" >
+                    <tbody>
                     <tr>
-                    <img id = "rotate" src={Rotate} alt="" width="23"/>
+                    <td><img id = "rotate" src={Rotate} alt="" width="23"/></td>
                     <td>Rotate: left click and drag</td>
-                    <img src={Zoom} alt="" width="23"/>
+                    <td><img src={Zoom} alt="" width="23"/></td>
                     <td>Zoom: scroll</td>
-                    <img src={Hover} alt="" width="23"/>
+                    <td><img src={Hover} alt="" width="23"/></td>
                     <td>Explore: hover</td>
                     </tr>
+                    </tbody>
                     </table>
                 </div>
-            <div id = "logo">
-                <img src={dlLogo} alt="" width="50"/>
-            </div>
+                <div id = "logo">
+                    <img src={dlLogo} alt="" width="50"/>
+                </div>
                 <div id = "tlText">
                 Drag the timeline to go back in time.
                 </div>

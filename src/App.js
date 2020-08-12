@@ -493,55 +493,58 @@ class App extends Component {
   updateTimelineData() {
       console.log("timelineactive")
       console.log("REees")
-      console.log(this.state.bulkData.presenceData.length)
+      console.log(this.state.bulkData.presenceData)
       if (this.state.bulkData !== []) {
-      if (this.state.bulkData.presenceData === undefined || this.state.bulkData.presenceData.length === 0) {
-        // array empty or does not exist
-    } else {
-      timeArr = (this.state.bulkData.presenceData.map(function(value,index) { 
-                  return value[this.state.bulkData.presenceData[0].length-1]; 
-                }));
-    };
-      console.log("timeArr")
-      console.log(timeArr)
-      goal = this.props.timelineTime;
-      console.log("Goal")
-      console.log(goal)
-
-      closest = timeArr.reduce(function(prev, curr) {
-        return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
-      });        
-      console.log("closest")
-      console.log(closest)
-      relevantIndex = (timeArr.indexOf(closest));
-      relevantPresence = this.state.bulkData.presenceData[relevantIndex];
-      console.log("relevantPresence")
-      console.log(relevantPresence)
-      var totOnline = 0;
-      relevantPresence.forEach(function(val) {
-        totOnline += val;
-      })
-      console.log("totOnline")
-      console.log(totOnline)
-      let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
-      let frontWindows = __this.windows.getObjectByName("FrontWindows");
-      let toTurnOn = [];
-      let x = windowsToToggle.sort(function() {
-        return 0.5 - Math.random();
-      });
-      toTurnOn = x.slice(0, totRoomsOn);
-      frontWindows.traverse(function(node) {
-        if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) ===true)) {
-          node.material = new THREE.MeshBasicMaterial({
-            color:"#e0cc48", // window ON  000000
-            });
-        } else if (windowsToToggle.includes(node.name) ===true)  {
-          node.material = new THREE.MeshPhongMaterial({
-            color:"#000000", // window ON
-            });
+        if ( typeof this.state.bulkData.presenceData !== "undefined" && this.state.bulkData.presenceData) {
+          console.log("timeArr")
+          console.log(timeArr)
+          goal = this.props.timelineTime;
+          console.log("Goal")
+          console.log(goal)
+  
+          closest = timeArr.reduce(function(prev, curr) {
+            return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
+          });        
+          console.log("closest")
+          console.log(closest)
+          relevantIndex = (timeArr.indexOf(closest));
+          relevantPresence = this.state.bulkData.presenceData[relevantIndex];
+          console.log("relevantPresence")
+          console.log(relevantPresence)
+          var totOnline = 0;
+          relevantPresence.forEach(function(val) {
+            totOnline += val;
+          })
+          console.log("totOnline")
+          console.log(totOnline)
+          let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
+          let frontWindows = __this.windows.getObjectByName("FrontWindows");
+          let toTurnOn = [];
+          let x = windowsToToggle.sort(function() {
+            return 0.5 - Math.random();
+          });
+          toTurnOn = x.slice(0, totRoomsOn);
+          frontWindows.traverse(function(node) {
+            if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) ===true)) {
+              node.material = new THREE.MeshBasicMaterial({
+                color:"#e0cc48", // window ON  000000
+                });
+            } else if (windowsToToggle.includes(node.name) ===true)  {
+              node.material = new THREE.MeshPhongMaterial({
+                color:"#000000", // window ON
+                });
+            }
+          })// array empty or does not exist
+          console.log("sdf")
+          console.log(this.state.bulkData.presenceData)
+          timeArr = (this.state.bulkData.presenceData.map(function(value,index) { 
+                      return value[this.state.bulkData.presenceData[0].length-1]; 
+                    }));
+    
+       
         }
-      })
-    }};
+     };
+    };
   updateModel() {
     __this = this;
     var highFivesArr;
