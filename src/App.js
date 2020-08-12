@@ -20,6 +20,8 @@ import Timeline from './components/Timeline'
 import Login from './components/Login'
 
 import DLLogo from './assets/images/dlLogo.jpg'
+import DLFlagLogo from './assets/images/DLFlagLogo.jpg'
+
 import './App.css';
 import { MeshPhysicalMaterial } from "three";
 
@@ -64,7 +66,7 @@ var windowsToToggle = ["Window01", "Window02", "Window108", "Window109",
                       "Window160", "Window161", "Window162", "Window163", "Window168", 
                       "Window169", "Window170", "Window171"];
 
-var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", "Plane", "grill_tank_08"];
+var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", "Plane", "grill_tank_008", "Chimneys", "Van"];
 var hoverClips = ["ForkLIftEmptyAction", "CrateAction.001", "RightGarageAction", "ESTD.action.001", "2006.action.001", "ChalkyCarEmptyAction.002", "ChalkyEmptyAction.002"];
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
 
@@ -75,7 +77,7 @@ const style = {
 var delta, d, timeMins;
 var __this;
 var appContainer;
-var timeArr, goal, closest, relevantIndex, relevantPresence, relevantActivity;
+var timeArr, goal, closest, relevantIndex, relevantPresence;
 var intersects, windowPopUp, popUpTitle, popUpText, object;
 
 var loginButton;
@@ -84,7 +86,10 @@ var banner, drawCanvas, ctx, canvaTexture, words, line, testLine, metrics, testW
 
 var forkLiftEmptyAnim, crateAction, rightGarageAction, chalkyCarEmptyAction, chalkyEmptyAction, ESTDAction, TWO006Action
 
-var APIURL = 'https://api-dot-virtualoffice-285701.ue.r.appspot.com';
+
+var totRoomsOnTemp = 10000; // defined as an unrealistic value to force, on init, to be reassigned
+
+
 
 /// End Initialize Vars ///
 
@@ -106,10 +111,10 @@ THREEx.DayNight.currentPhase	= function(sunAngle){
 THREEx.DayNight.SunLight	= function(){
   var light	= new THREE.DirectionalLight( "#ffffff");
   light.castShadow = true;
-  light.shadow.camera.top = 10;
-  light.shadow.camera.bottom = - 10;
-  light.shadow.camera.left = - 10;
-  light.shadow.camera.right = 10;
+  light.shadow.camera.top = 5;
+  light.shadow.camera.bottom = - 5;
+  light.shadow.camera.left = - 5;
+  light.shadow.camera.right = 5;
   light.shadow.camera.near = 0.5;
   light.shadow.camera.far =300;
   light.shadow.bias = 0.001;
@@ -120,9 +125,9 @@ THREEx.DayNight.SunLight	= function(){
 	this.object3d	= light;
 	
 	this.update	= function(sunAngle){
-		light.position.x = 10;
+		light.position.x = Math.cos(sunAngle) * 60;
 		light.position.y = Math.sin(sunAngle) * 60;
-		light.position.z = Math.cos(sunAngle) * 60;
+		light.position.z = 10;
 		phase	= THREEx.DayNight.currentPhase(sunAngle)
 		if( phase === 'day' ){
       light.color.set("rgb(255,"+ (Math.floor(Math.sin(sunAngle)*200)+55) + "," + (Math.floor(Math.sin(sunAngle)*200)+55) +")");
@@ -232,8 +237,8 @@ class App extends Component {
         if (error.response !== void(0)){
         if (error.response.status===401) {
           loginButton = document.getElementById("loginButton");
-          if (loginButton.style.backgroundColor !== "#c45949") {
-            loginButton.style.backgroundColor="#c45949";
+          if (loginButton.style.backgroundColor !== "#C58158") {
+            loginButton.style.backgroundColor="#C58158";
           }
         }
       }
@@ -261,8 +266,8 @@ class App extends Component {
     this.controls.domElement= appContainer; /// prevents adjusting of timeline from triggering pan and zoom on rendering screen
     this.controls.maxDistance = 60; //min zoom
     this.controls.minDistance = 5; //max zoom
-    this.controls.minPolarAngle = Math.PI/10; //min camera angle
-    this.controls.maxPolarAngle = Math.PI/2.5; //max camera angle
+    // this.controls.minPolarAngle = Math.PI/10; //min camera angle
+    // this.controls.maxPolarAngle = Math.PI/2.5; //max camera angle
     
 
     this.renderer = new THREE.WebGLRenderer({antialias: true, alpha:false, powerPreference:"low-power"}); // init renderer
@@ -340,11 +345,25 @@ class App extends Component {
         this.planeRotateGroup.add( planeGroup);
         this.planeRotateGroup.rotation.z=Math.PI/6;
         this.planeRotateGroup.castShadow=true;
+        this.bannerTexture = new THREE.TextureLoader().load(DLFlagLogo);
+        this.bannerTexture.wrapT = THREE.RepeatWrapping;
+        this.bannerTexture.wrapS = THREE.RepeatWrapping;
+
+        this.bannerTexture.repeat.y = - 1;
+
+
+        banner = __this.plane.getObjectByName("Banner"); //rm const
+        banner.material	= new THREE.MeshStandardMaterial({
+          map	: this.bannerTexture,
+          side: THREE.DoubleSide,
+  
+        })
+        this.scene.add(this.planeRotateGroup)
 
         ///END ADD PLANE///
 
         ///ADD BUILDING///
-        this.dlBuilding = this.par.getObjectByName("/static/media/building.9f97c129.glb");
+        this.dlBuilding = this.par.getObjectByName("/static/media/building.d2daf444.glb");
         this.dlBuilding.position.set(0, 0.5, 0);
         this.windows = this.dlBuilding.getObjectByName("Windows");
         this.scene.add(this.dlBuilding) // adding it to the actual scene 
@@ -355,11 +374,24 @@ class App extends Component {
         this.buildingClips.forEach(function(clip) {
           if (hoverClips.includes(clip.name) === false) __this.buildingMixer.clipAction( clip ).play();
         })
-        let streetLampBulb1 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-r001");
-        let streetLampBulb2 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r001");
-        let lightBulbLamp= new THREE.PointLight( 0xffffff, 1, 100 ); 
-        streetLampBulb1.add(lightBulbLamp)
-        streetLampBulb2.add(lightBulbLamp)
+        let streetLampBulb2 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r002");
+        let streetLampBulb1 = this.dlBuilding.getObjectByName("00-LIT-starc-lamp-bulb-r001");
+        streetLampBulb2.material = new THREE.MeshBasicMaterial({
+          color:"#e0cc48", // light ON
+          });
+        streetLampBulb2.layers.toggle( BLOOM_SCENE );
+
+        streetLampBulb1.material = new THREE.MeshBasicMaterial({
+          color:"#e0cc48", // light ON
+          });
+        streetLampBulb1.layers.toggle( BLOOM_SCENE );
+        let lightBulbLamp2= new THREE.PointLight( '#e0cc48', 30, 0, 2); 
+        let lightBulbLamp1= new THREE.PointLight( '#e0cc48', 30, 0, 2); 
+        lightBulbLamp2.position.set(3, 3, 1)
+        lightBulbLamp1.position.set(-33, 4, 3.5)
+
+        this.scene.add(lightBulbLamp2)
+        this.scene.add(lightBulbLamp1)
 
         ///END ADD BUILDING///
 
@@ -421,7 +453,7 @@ class App extends Component {
       loadingScreen.classList.add( 'fade-out' ); 
       setTimeout(function() {
         loadingScreen.parentNode.removeChild(loadingScreen);
-      },3000);   
+      },2000);   
       this.startAnimationLoop()
       
     };
@@ -434,6 +466,7 @@ class App extends Component {
       loader.load( model, function ( gltf ) {
         __this.model=gltf.scene;
         __this.model.name = model;
+        console.log(model)
         __this.model.animations = gltf.animations;
         __this.par.add(__this.model)
 
@@ -511,6 +544,8 @@ class App extends Component {
               totOnline += val;
             })
             let totRoomsOn = Math.floor((totOnline/data.length)*windowsToToggle.length);
+            if (totRoomsOn !==totRoomsOnTemp) { // only run if room #'s are different
+            totRoomsOnTemp = totRoomsOn;
             let frontWindows = __this.windows.getObjectByName("FrontWindows");
             let toTurnOn = [];
             let x = windowsToToggle.sort(function() {
@@ -527,13 +562,13 @@ class App extends Component {
                   color:"#000000", // window OFF
                   });
               }    
-            })
+            })}
         }).catch(function (error) {
           if (error.response !== void(0)){
         if (error.response.status===401) {
           loginButton = document.getElementById("loginButton");
-          if (loginButton.style.backgroundColor !== "#c45949") {
-            loginButton.style.backgroundColor="#c45949";
+          if (loginButton.style.backgroundColor !== "#C58158") {
+            loginButton.style.backgroundColor="#C58158";
           }
         }
       }
@@ -548,10 +583,16 @@ class App extends Component {
         let i = 0;
         if (result.length >0 && i<result.length) {
           loopHighFives()
+        } else {
+          banner = __this.plane.getObjectByName("Banner"); //rm const
+          banner.material	= new THREE.MeshStandardMaterial({
+            map	: this.bannerTexture,
+            side: THREE.DoubleSide,
+          })
         }
         function loopHighFives() {
           if (__this.props.timelineActive !== 1){
-            banner = __this.plane.getObjectByName("Banner"); //rm const
+            banner = __this.plane.getObjectByName("Banner"); 
             drawCanvas = document.createElement("CANVAS");
             drawCanvas.width = 1800;
             drawCanvas.height=1200;
@@ -588,28 +629,23 @@ class App extends Component {
           }
           context.fillText(line,x,y);
           return context;
-          }
-            __this.scene.add(__this.planeRotateGroup)
-          }
+          }}
           setTimeout(function() {
-            if (__this.scene.getObjectByName("planeRotateGroup")!==void(0)) {
-            __this.scene.remove(__this.planeRotateGroup)
-            }
             i++;
             if (i < result.length+1) loopHighFives();
-          },50000/result.length );
+          },550000/result.length );
       }
       }).catch(function (error) {
         if (error.response !== void(0)){
         if (error.response.status===401) {
           loginButton = document.getElementById("loginButton");
-          if (loginButton.style.backgroundColor !== "#c45949") {
-            loginButton.style.backgroundColor="#c45949";
+          if (loginButton.style.backgroundColor !== "#C58158") {
+            loginButton.style.backgroundColor="#C58158";
           }
         }
       }
     });
-    }, 60000);//60000 ; 1 mins
+    }, 600000);//60000 ; 1 mins
 }
 
   onDocumentMouseOver( event ) {
@@ -637,7 +673,7 @@ class App extends Component {
         if (hoverContacts.includes(object.parent.name)) {
             if (object.parent.name === "ForkLift001") {
               popUpTitle.innerHTML = "IN HOUSE PRODUCTION"
-              popUpText.innerHTML = "Whether we’re making robots, software or socks, we do the vast majority of our production in house. This allows us to be nimble in our process and give our clients excellent visibility into each project, from start to finish."
+              popUpText.innerHTML = "Whether we’re making robots, roller coasters, or smart socks, we have a unique, end-to-end process from insight to install. We make our inventions ourselves: fast, flawlessly, and fully in-house in our 12,000 square foot prototyping facility."
               forkLiftEmptyAnim = this.hoverMixer.clipAction( this.buildingClips[3]);
               forkLiftEmptyAnim.setLoop(THREE.LoopOnce);
               forkLiftEmptyAnim.clampWhenFinished = true
@@ -652,16 +688,16 @@ class App extends Component {
               popUpText.innerHTML = "Founded in Pittsburgh, grounded in Sharpsburg. We’re proud to be from a city of disruptors, innovators, and makers. Our office and state-of-the-art prototyping facility are located in the Old Fort Pitt Brewery building, nestled in Pittsburgh’s historic Sharpsburg neighborhood."
             } else if (object.parent.name==="chalky001") {
               popUpTitle.innerHTML = "CHALKBOT"
-              popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making."
+              popUpText.innerHTML = "Deeplocal disrupted the industry with Chalkbot, the first use of robotics in advertising. Since then, we’ve created award-winning interactive experiences for the world’s most innovative brands."
 
             } else if (object.parent.name ==="GarageDoor_Right") {
               popUpTitle.innerHTML = "CHALKBOT"
               popUpText.innerHTML = "Meet the Nike Chalkbot. We disrupted the industry with the first use of robotics in advertising. The rest is history in the making. "
-              rightGarageAction = this.hoverMixer.clipAction( this.buildingClips[17]);
-              chalkyCarEmptyAction = this.hoverMixer.clipAction( this.buildingClips[14]);
-              chalkyEmptyAction = this.hoverMixer.clipAction( this.buildingClips[15]);
-              ESTDAction = this.hoverMixer.clipAction( this.buildingClips[16]);
-              TWO006Action = this.hoverMixer.clipAction( this.buildingClips[13]);
+              rightGarageAction = this.hoverMixer.clipAction( this.buildingClips[18]);
+              chalkyCarEmptyAction = this.hoverMixer.clipAction( this.buildingClips[15]);
+              chalkyEmptyAction = this.hoverMixer.clipAction( this.buildingClips[16]);
+              ESTDAction = this.hoverMixer.clipAction( this.buildingClips[17]);
+              TWO006Action = this.hoverMixer.clipAction( this.buildingClips[14]);
 
               rightGarageAction.clampWhenFinished = true;
               chalkyCarEmptyAction.clampWhenFinished = true;
@@ -684,30 +720,43 @@ class App extends Component {
             } else if (object.parent.name ==="Plane") {
               popUpTitle.innerHTML = "EMPLOYEE HIGH FIVES"
               popUpText.innerHTML="Our team is comprised of creatives, marketers, strategists, technologists, engineers (mechanical, electrical, robotic, and software) and artists. See who's crushing it today."
+            } else if (object.parent.name ==="grill_tank_008") {
+              popUpTitle.innerHTML = "COMPANY CULTURE"
+              popUpText.innerHTML="Deeplocal is a place where amazing talent can invent, create, and inspire. Even with such a strong mix of individual talent, we work with and for each other. We share our wins, and you might even catch our team sharing some grub around the grill."
+            } else if (object.parent.name ==="Chimneys") {
+              popUpTitle.innerHTML = "CARBON DEFENSE LEAGUE"
+              popUpText.innerHTML="Fun fact: our CEO Nathan Martin was leading a collective called the Carbon Defense League and fronting a grindcore band called “Creation is Crucifixion” in the early 2000s"
+            } else if (object.parent.name ==="Van") {
+              popUpTitle.innerHTML = "AT YOUR SERVICE"
+              popUpText.innerHTML="This is our Deeplocal van. It’s put in some miles, and it’s always on the go, ready to help us install and support our clients’ projects."
             }
+
             if (intersected !== object) {            
             if (appContainer.querySelector("#windowPopup") === null) {
             appContainer.appendChild(windowPopUp);
             }
             if (intersected) {
               for (let j = 0; j < intersected.parent.children.length; j++) {
+                if ((intersected.parent.children[j].material !== void(0)) && (intersected.parent.children[j].name !=="Banner")){
                 intersected.parent.children[j].material = new MeshPhysicalMaterial({color:intersected.parent.children[j].currentHex});
-              }
+              }}
             } else {
               intersected = null;
             }
             intersected = object;
             for (let j = 0; j < intersected.parent.children.length; j++) {
+              if ((intersected.parent.children[j].material !== void(0)) && (intersected.parent.children[j].name !=="Banner")){
               intersected.parent.children[j].currentHex = intersected.parent.children[j].material.color.getHex();
               intersected.parent.children[j].material = new MeshPhysicalMaterial({color:0xc5a158});
-            }
+            }}
           }
         } else {
             if (intersected) {
               for (let j = 0; j < intersected.parent.children.length; j++) {
-              intersected.parent.children[j].material.color.setHex( intersected.parent.children[j].currentHex );
+              if ((intersected.parent.children[j].material !== void(0))&& (intersected.parent.children[j].name !=="Banner")){
+              intersected.parent.children[j].material = new MeshPhysicalMaterial({color:intersected.parent.children[j].currentHex});
+            }}
             }
-          }
             intersected = null;
             if ((windowPopUp !==void(0)) && (appContainer.querySelector("#windowPopup") !== null)){
                 appContainer.removeChild(appContainer.querySelector("#windowPopup"));
