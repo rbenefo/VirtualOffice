@@ -620,7 +620,7 @@ class App extends Component {
         }
       }
     });
-    }, 120000);// 2 min
+    }, 90000);// 1.5 min
 
     setInterval(function() {
       if (__this.state.highFives.length > 0) {
