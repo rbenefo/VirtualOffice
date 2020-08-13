@@ -196,6 +196,7 @@ class App extends Component {
     window.removeEventListener("resize", this.handleWindowResize);
     window.removeEventListener("mousemove", this.onDocumentMouseOver);
     window.cancelAnimationFrame(this.requestID);
+    this.renderer.forceContextLoss();
     this.controls.dispose();
   }
 
@@ -533,10 +534,12 @@ class App extends Component {
           toTurnOn = x.slice(0, totRoomsOn);
           frontWindows.traverse(function(node) {
             if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) ===true)) {
+              node.material.dispose();
               node.material = new THREE.MeshBasicMaterial({
                 color:"#e0cc48", // window ON  000000
                 });
             } else if (windowsToToggle.includes(node.name) ===true)  {
+              node.material.dispose();
               node.material = new THREE.MeshPhongMaterial({
                 color:"#000000", // window ON
                 });
@@ -567,6 +570,7 @@ class App extends Component {
       if (__this.props.timelineActive !== 1){ 
         axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getPresence', {
         }).then(function (res) {
+            if (res.data.length !==0) {
             var data = res.data;
             var totOnline = 0;
             data.forEach(function(val) {
@@ -583,15 +587,17 @@ class App extends Component {
             toTurnOn = x.slice(0, totRoomsOn);
             frontWindows.traverse(function(node) {
               if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) === true)) {
+                node.material.dispose();
                 node.material = new THREE.MeshBasicMaterial({
                   color:"#e0cc48", // window ON 
                   });
               } else if (windowsToToggle.includes(node.name) === true) {
+                node.material.dispose();
                 node.material = new THREE.MeshPhongMaterial({
                   color:"#000000", // window OFF
                   });
               }    
-            })}
+            })}}
         }).catch(function (error) {
           if (error.response !== void(0)){
         if (error.response.status===401) {
@@ -638,12 +644,13 @@ class App extends Component {
           ctx.textBaseline = "middle";
           canvaTexture=new THREE.CanvasTexture( drawCanvas );
           canvaTexture.wrapS = THREE.RepeatWrapping;
-      
+          banner.material.dispose();
           banner.material	= new THREE.MeshStandardMaterial({map	: canvaTexture,side: THREE.DoubleSide,});
           __this.setState({highFives:__this.state.highFives.slice(1)})
         }
       } else {
-        banner = __this.plane.getObjectByName("Banner"); 
+        banner = __this.plane.getObjectByName("Banner");
+        banner.material.dispose(); 
         banner.material	= new THREE.MeshStandardMaterial({
           map	: __this.bannerTexture,
           side: THREE.DoubleSide,
@@ -761,6 +768,7 @@ class App extends Component {
             if (intersected) {
               for (let j = 0; j < intersected.parent.children.length; j++) {
                 if ((intersected.parent.children[j].material !== void(0)) && (intersected.parent.children[j].name !=="Banner")){
+                intersected.parent.chidren[j].material.dispose()
                 intersected.parent.children[j].material = new MeshPhysicalMaterial({color:intersected.parent.children[j].currentHex});
               }}
             } else {
@@ -770,6 +778,7 @@ class App extends Component {
             for (let j = 0; j < intersected.parent.children.length; j++) {
               if ((intersected.parent.children[j].material !== void(0)) && (intersected.parent.children[j].name !=="Banner")){
               intersected.parent.children[j].currentHex = intersected.parent.children[j].material.color.getHex();
+              intersected.parent.chidren[j].material.dispose()
               intersected.parent.children[j].material = new MeshPhysicalMaterial({color:0xc5a158});
             }}
           }
@@ -777,6 +786,7 @@ class App extends Component {
             if (intersected) {
               for (let j = 0; j < intersected.parent.children.length; j++) {
               if ((intersected.parent.children[j].material !== void(0))&& (intersected.parent.children[j].name !=="Banner")){
+              intersected.parent.chidren[j].material.dispose()
               intersected.parent.children[j].material = new MeshPhysicalMaterial({color:intersected.parent.children[j].currentHex});
             }}
             }
