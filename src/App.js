@@ -109,15 +109,15 @@ THREEx.DayNight.currentPhase	= function(sunAngle){
 THREEx.DayNight.SunLight	= function(){
   var light	= new THREE.DirectionalLight( "#ffffff");
   // light.castShadow = true;
-  // light.shadow.camera.top = 5;
-  // light.shadow.camera.bottom = - 5;
-  // light.shadow.camera.left = - 5;
-  // light.shadow.camera.right = 5;
+  // light.shadow.camera.top = 50;
+  // light.shadow.camera.bottom = - 50;
+  // light.shadow.camera.left = - 50;
+  // light.shadow.camera.right = 50;
   // light.shadow.camera.near = 0.5;
   // light.shadow.camera.far =300;
   // light.shadow.bias = 0.001;
   
-  // light.shadow.radius = 10000;
+  // light.shadow.radius = 100;
   light.intensity = 2.5;
 
 	this.object3d	= light;
@@ -768,7 +768,7 @@ class App extends Component {
             if (intersected) {
               for (let j = 0; j < intersected.parent.children.length; j++) {
                 if ((intersected.parent.children[j].material !== void(0)) && (intersected.parent.children[j].name !=="Banner")){
-                intersected.parent.chidren[j].material.dispose()
+                intersected.parent.children[j].material.dispose()
                 intersected.parent.children[j].material = new MeshPhysicalMaterial({color:intersected.parent.children[j].currentHex});
               }}
             } else {
@@ -778,7 +778,7 @@ class App extends Component {
             for (let j = 0; j < intersected.parent.children.length; j++) {
               if ((intersected.parent.children[j].material !== void(0)) && (intersected.parent.children[j].name !=="Banner")){
               intersected.parent.children[j].currentHex = intersected.parent.children[j].material.color.getHex();
-              intersected.parent.chidren[j].material.dispose()
+              intersected.parent.children[j].material.dispose()
               intersected.parent.children[j].material = new MeshPhysicalMaterial({color:0xc5a158});
             }}
           }
@@ -786,7 +786,7 @@ class App extends Component {
             if (intersected) {
               for (let j = 0; j < intersected.parent.children.length; j++) {
               if ((intersected.parent.children[j].material !== void(0))&& (intersected.parent.children[j].name !=="Banner")){
-              intersected.parent.chidren[j].material.dispose()
+              intersected.parent.children[j].material.dispose()
               intersected.parent.children[j].material = new MeshPhysicalMaterial({color:intersected.parent.children[j].currentHex});
             }}
             }

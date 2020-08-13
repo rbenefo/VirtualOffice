@@ -3,6 +3,7 @@ import Zoom from '../assets/images/zoom.png'
 import Rotate from '../assets/images/rotate.png'
 import Hover from '../assets/images/hover.png'
 import dlLogo from '../assets/images/dlWhiteLogo.png'
+import Pan from '../assets/images/pan.png'
 import "./Onboard.css"
 
 export default class Onboard extends React.Component {
@@ -23,6 +24,8 @@ export default class Onboard extends React.Component {
                     <td>Zoom: scroll</td>
                     <td><img src={Hover} alt="" width="23"/></td>
                     <td>Explore: hover</td>
+                    <td><img src={Pan} alt="" width="23"/></td>
+                    <td>Pan: right click and drag</td>
                     </tr>
                     </tbody>
                     </table>

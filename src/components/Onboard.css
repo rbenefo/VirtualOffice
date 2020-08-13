@@ -1,10 +1,12 @@
 #text {
-    position:fixed;
+    position: fixed;
     background-color:none;
     font-size:10pt;
     color:white;
     top:4%;
-    left:31%;
+    left:50%;
+    margin-left:-357.5px;
+    width:715px;
     font-family: 'Overpass', sans-serif;
     text-align: center;
 }
