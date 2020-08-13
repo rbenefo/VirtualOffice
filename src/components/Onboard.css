@@ -1,13 +1,12 @@
 #text {
+    position:fixed;
     background-color:none;
     font-size:10pt;
     color:white;
-    position: absolute;
+    top:4%;
+    left:31%;
     font-family: 'Overpass', sans-serif;
-    top:5%;
     text-align: center;
-    margin-left:auto;
-    margin-right:auto;
 }
 #onboardContainer{
     height:100%;

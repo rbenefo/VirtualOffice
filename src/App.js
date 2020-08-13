@@ -70,9 +70,9 @@ var hoverContacts = ["ForkLift001", "Sign_FortPittThatsIt", "GarageDoor_Right", 
 var hoverClips = ["ForkLIftEmptyAction", "CrateAction.001", "RightGarageAction", "ESTD.action.001", "2006.action.001", "ChalkyCarEmptyAction.002", "ChalkyEmptyAction.002"];
 var MODELS = [DLBuildingGLB, PlaneGLB];  ///list all GLB models in world
 
-const style = {
-  height: window.innerHeight, // we can control scene size by setting container dimensions
-};
+// const style = {
+//   height: window.innerHeight, // we can control scene size by setting container dimensions
+// };
 
 var delta, d, timeMins;
 var __this;
@@ -826,7 +826,6 @@ class App extends Component {
   render() {
     return (
     <div id = "visual"  ref={ref => (this.el = ref)}>
-    <About/>
     
     </div>
     );
@@ -900,14 +899,17 @@ class Container extends React.Component {
   };
   render() {
     return (
-      <div style = {style} id = "container">
+      <div id = "container">
         <div id = "appContainer">
         <div id = "clockTime">{this.convertTimelineTimeToClockTime()}</div>
         <App timelineActive ={this.state.timelineActive} timelineTime = {this.state.time}/>
         </div>
         <Timeline timelineActive={this.isTimelineActive}  timelineTime = {this.recordTimelineTime}/>
-        
+        <div id = "loginAndAbout">
        <Login/>
+       <About/>
+       </div>
+
        <Onboard/>
          <div id = "loadingScreen">
           <img src={DLLogo} alt="" id = "loadingLogo"/>
