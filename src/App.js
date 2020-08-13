@@ -108,16 +108,16 @@ THREEx.DayNight.currentPhase	= function(sunAngle){
 //day+night
 THREEx.DayNight.SunLight	= function(){
   var light	= new THREE.DirectionalLight( "#ffffff");
-  light.castShadow = true;
-  light.shadow.camera.top = 5;
-  light.shadow.camera.bottom = - 5;
-  light.shadow.camera.left = - 5;
-  light.shadow.camera.right = 5;
-  light.shadow.camera.near = 0.5;
-  light.shadow.camera.far =300;
-  light.shadow.bias = 0.001;
+  // light.castShadow = true;
+  // light.shadow.camera.top = 5;
+  // light.shadow.camera.bottom = - 5;
+  // light.shadow.camera.left = - 5;
+  // light.shadow.camera.right = 5;
+  // light.shadow.camera.near = 0.5;
+  // light.shadow.camera.far =300;
+  // light.shadow.bias = 0.001;
   
-  light.shadow.radius = 10000;
+  // light.shadow.radius = 10000;
   light.intensity = 2.5;
 
 	this.object3d	= light;
@@ -228,8 +228,8 @@ class App extends Component {
     this.renderer.setSize(width, height);
     this.renderer.physicallyCorrectLights = true;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
+    // this.renderer.shadowMap.enabled = true;
+    // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     this.renderer.capabilities.maxTextureSize=1;
     this.renderer.setSize(width, height);
     this.el.appendChild(this.renderer.domElement); // mount using React ref
@@ -424,8 +424,8 @@ class App extends Component {
         // Enable Shadows
         __this.model.traverse( function ( object ) {
           if ( object.isMesh ) {
-            object.castShadow = true;
-            object.receiveShadow = true;
+            // object.castShadow = true;
+            // object.receiveShadow = true;
           }
         } );
         onLoaded();
@@ -441,7 +441,7 @@ class App extends Component {
           if ( numLoadedModels === MODELS.length ) {
             setTimeout(function() {
               setModelsInWorld();
-            },2000);   
+            },3000);   
           }
         });
       }
@@ -630,7 +630,7 @@ class App extends Component {
           drawCanvas.width = 1024;
           drawCanvas.height=1024;
           ctx = drawCanvas.getContext("2d");
-          ctx.font = "200px Overpass";
+          ctx.font = "200px Quantico";
           ctx.fillStyle = "white";
           ctx.textAlign="center";
           ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
