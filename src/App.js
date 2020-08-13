@@ -654,7 +654,7 @@ class App extends Component {
           ctx.fillStyle = "white";
           ctx.textAlign="center";
           ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
-          ctx = __this.wrapText(ctx, __this.state.highFives[0], (drawCanvas.width-20)/2, 350, drawCanvas.width-100, 350);
+          ctx = __this.wrapText(ctx, __this.state.highFives[0], (drawCanvas.width-20)/2, 400, drawCanvas.width-100, 350);
           ctx.textBaseline = "middle";
           canvaTexture=new THREE.CanvasTexture( drawCanvas );
           canvaTexture.wrapS = THREE.RepeatWrapping;
