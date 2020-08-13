@@ -622,7 +622,12 @@ class App extends Component {
     setInterval(function() {
       axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getHighFives', {
       }).then(function (res) {
-        let result = res.data.map(a => {if (a.user ==="U017PEP5XV0") return a.text}); //replace U017PEP5XV0 with High Five bot
+        let result = res.data.map(a => {if (a.user ==="U017PEP5XV0") {
+                                          let highFiveText = a.text;
+                                          highFiveText = highFiveText.substring(0, highFiveText.indexOf(':'));
+                                          return highFiveText
+        }}); //replace U017PEP5XV0 with High Five bot
+        
         let newHighFives = __this.state.highFives.concat(result)
         __this.setState({highFives:newHighFives});   
       }).catch(function (error) {
@@ -645,7 +650,7 @@ class App extends Component {
           drawCanvas.width = 1024;
           drawCanvas.height=1024;
           ctx = drawCanvas.getContext("2d");
-          ctx.font = "200px Quantico";
+          ctx.font = "200px Overpass";
           ctx.fillStyle = "white";
           ctx.textAlign="center";
           ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
