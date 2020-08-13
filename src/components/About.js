@@ -1,5 +1,4 @@
 import React from 'react';
-import DLKey from '../assets/images/DLkeyWhite.png'
 
 import "./About.css"
 export default class About extends React.Component {

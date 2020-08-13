@@ -113,10 +113,9 @@ THREEx.DayNight.SunLight	= function(){
   // light.shadow.camera.bottom = - 50;
   // light.shadow.camera.left = - 50;
   // light.shadow.camera.right = 50;
-  // light.shadow.camera.near = 0.5;
-  // light.shadow.camera.far =300;
-  // light.shadow.bias = 0.001;
-  
+  // light.shadow.camera.near = 10;
+  // light.shadow.camera.far =200;
+  // light.shadow.bias = -0.001;
   // light.shadow.radius = 100;
   light.intensity = 2.5;
 
@@ -180,6 +179,8 @@ class App extends Component {
     this.onDocumentMouseOver = this.onDocumentMouseOver.bind(this);
     this.updateTimelineData = this.updateTimelineData.bind(this);
     this.initTimelineData = this.initTimelineData.bind(this);
+    // this.optimize = this.optimize.bind(this);
+    // this.deoptimize = this.deoptimize.bind(this);
 
   };
   componentDidMount() {
@@ -233,6 +234,7 @@ class App extends Component {
     // this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     this.renderer.capabilities.maxTextureSize=1;
     this.renderer.setSize(width, height);
+    // this.optimized=false;
     this.el.appendChild(this.renderer.domElement); // mount using React ref
 
     this.renderScene = new RenderPass( this.scene, this.camera )    
@@ -297,7 +299,6 @@ class App extends Component {
 
         this.planeRotateGroup.add( planeGroup);
         this.planeRotateGroup.rotation.z=Math.PI/6;
-        this.planeRotateGroup.castShadow=true;
         this.bannerTexture = new THREE.TextureLoader().load(DLFlagLogo);
         this.bannerTexture.wrapT = THREE.RepeatWrapping;
         this.bannerTexture.wrapS = THREE.RepeatWrapping;
@@ -453,6 +454,14 @@ class App extends Component {
   startAnimationLoop = () => {
     this.controls.update();
     delta = clock.getDelta();
+    // if ((delta > 1/30)&&(this.optimized ===false)) {
+    //   this.optimize();
+    //   console.log("optimizing")
+    // } else if ((delta <= 1/30) &&(this.optimized===true)) {
+    //   this.deoptimize();
+    //   console.log("deoptimizing")
+
+    // }
 
     this.mixer.update( delta ); // plane animation
     this.buildingMixer.update(delta);
@@ -820,6 +829,18 @@ class App extends Component {
     }
   }
 
+  // optimize() {
+  //   this.optimized=true;
+  //   // this.renderer.shadowMap.autoUpdate = false;
+  //   this.sunLight.object3d.castShadow=false;
+  // }
+  // deoptimize() {
+  //   this.optimized=false;
+  //   this.sunLight.object3d.castShadow=true;
+
+  //   // this.renderer.shadowMap.autoUpdate = true;
+
+  // }
 
   handleWindowResize = () => {
     const width = this.el.clientWidth;
