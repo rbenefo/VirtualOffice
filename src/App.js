@@ -86,9 +86,6 @@ var banner, drawCanvas, ctx, canvaTexture, words, line, testLine, metrics, testW
 
 var forkLiftEmptyAnim, crateAction, rightGarageAction, chalkyCarEmptyAction, chalkyEmptyAction, ESTDAction, TWO006Action
 
-
-var totRoomsOnTemp = 10000; // defined as an unrealistic value to force, on init, to be reassigned
-
 var dhours;
 
 /// End Initialize Vars ///
@@ -174,16 +171,22 @@ class App extends Component {
     this.state = {
       time:"",
       bulkData:[],
+      highFives:[],
     };
     this.load = this.load.bind(this);
     this.startAnimationLoop = this.startAnimationLoop.bind(this);
     this.updateModel = this.updateModel.bind(this);
     this.onDocumentMouseOver = this.onDocumentMouseOver.bind(this);
     this.updateTimelineData = this.updateTimelineData.bind(this);
+    this.initTimelineData = this.initTimelineData.bind(this);
+
   };
   componentDidMount() {
+    console.log("test8")
+    this.totRoomsOnTemp = 10000;
     this.sceneSetup();
     this.load();
+    this.initTimelineData();
     this.updateModel()
     window.addEventListener("resize", this.handleWindowResize);
     window.addEventListener('mousemove', this.onDocumentMouseOver );
@@ -195,13 +198,7 @@ class App extends Component {
     window.cancelAnimationFrame(this.requestID);
     this.controls.dispose();
   }
-  componentDidUpdate(prevProps, prevState) {
-    __this = this;
-    if ((prevProps.timelineActive !== this.props.timelineActive) &&(this.props.timelineActive === 1)) {
-      console.log("DID UPDATE")
 
-    } 
-  }
 
   sceneSetup = () => {
     appContainer = document.getElementById("appContainer");
@@ -235,8 +232,6 @@ class App extends Component {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // for softer shadows
     this.renderer.capabilities.maxTextureSize=1;
     this.renderer.setSize(width, height);
-    // this.renderer.toneMapping = THREE.ReinhardToneMapping; // can set tonemapping for overall vibes
-    // this.renderer.toneMappingExposure = Math.pow(1, 4.0);
     this.el.appendChild(this.renderer.domElement); // mount using React ref
 
     this.renderScene = new RenderPass( this.scene, this.camera )    
@@ -490,34 +485,46 @@ class App extends Component {
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
+  initTimelineData(){
+    axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getBulkData', {
+    }).then(function (res) {
+      __this.setState({bulkData:res.data});
+    }).catch(function (error) {
+      if (error.response !== void(0)){
+      if (error.response.status===401) {
+        loginButton = document.getElementById("loginButton");
+        if (loginButton.style.backgroundColor !== "#C58158") {
+          loginButton.style.backgroundColor="#C58158";
+        }
+      }
+    }
+
+  })};
+
   updateTimelineData() {
-      console.log("timelineactive")
-      console.log("REees")
-      console.log(this.state.bulkData.presenceData)
+    this.totRoomsOnTemp = 10000; // make totRoomsOnTemp large to force update
+      __this = this;
+      console.log(this.state.bulkData)
       if (this.state.bulkData !== []) {
         if ( typeof this.state.bulkData.presenceData !== "undefined" && this.state.bulkData.presenceData) {
           if (this.state.bulkData.presenceData.length > 0) {
-          console.log("timeArr")
-          console.log(timeArr)
+          timeArr = (this.state.bulkData.presenceData.map(function(value,index) { 
+                      return value[__this.state.bulkData.presenceData[0].length-1]; 
+                    }));
           goal = this.props.timelineTime;
-          console.log("Goal")
-          console.log(goal)
   
           closest = timeArr.reduce(function(prev, curr) {
             return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
           });        
-          console.log("closest")
-          console.log(closest)
           relevantIndex = (timeArr.indexOf(closest));
           relevantPresence = this.state.bulkData.presenceData[relevantIndex];
-          console.log("relevantPresence")
-          console.log(relevantPresence)
+          relevantPresence.pop();
           var totOnline = 0;
           relevantPresence.forEach(function(val) {
             totOnline += val;
           })
-          console.log("totOnline")
-          console.log(totOnline)
+          console.log("relevant presence bulk")
+          console.log(relevantPresence)
           let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
           let frontWindows = __this.windows.getObjectByName("FrontWindows");
           let toTurnOn = [];
@@ -525,6 +532,8 @@ class App extends Component {
             return 0.5 - Math.random();
           });
           toTurnOn = x.slice(0, totRoomsOn);
+          console.log("to turn on bulk")
+          console.log(toTurnOn)
           frontWindows.traverse(function(node) {
             if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) ===true)) {
               node.material = new THREE.MeshBasicMaterial({
@@ -535,25 +544,15 @@ class App extends Component {
                 color:"#000000", // window ON
                 });
             }
-          })// array empty or does not exist
-          console.log("sdf")
-          console.log(this.state.bulkData.presenceData)
-          timeArr = (this.state.bulkData.presenceData.map(function(value,index) { 
-                      return value[this.state.bulkData.presenceData[0].length-1]; 
-                    }));
-    
-       
+          })   
         }};
      };
     };
   updateModel() {
     __this = this;
-    var highFivesArr;
     setInterval(function() {
       axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getBulkData', {
       }).then(function (res) {
-        console.log("res")
-        console.log(res)
         __this.setState({bulkData:res.data});
       }).catch(function (error) {
         if (error.response !== void(0)){
@@ -565,25 +564,28 @@ class App extends Component {
         }
       }
     });
-    }, 60000); // every minute
+    }, 300000); // every 5 minutes
     setInterval(function() {
       if (__this.props.timelineActive !== 1){ 
         axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getPresence', {
         }).then(function (res) {
+            console.log("got live data")
             var data = res.data;
             var totOnline = 0;
             data.forEach(function(val) {
               totOnline += val;
             })
             let totRoomsOn = Math.floor((totOnline/data.length)*windowsToToggle.length);
-            if (totRoomsOn !==totRoomsOnTemp) { // only run if room #'s are different
-            totRoomsOnTemp = totRoomsOn;
+            if (totRoomsOn !==__this.totRoomsOnTemp) { // only run if room #'s are different
+            __this.totRoomsOnTemp = totRoomsOn;
             let frontWindows = __this.windows.getObjectByName("FrontWindows");
             let toTurnOn = [];
             let x = windowsToToggle.sort(function() {
               return 0.5 - Math.random();
             });
             toTurnOn = x.slice(0, totRoomsOn);
+            console.log("live to turn on")
+            console.log(toTurnOn)
             frontWindows.traverse(function(node) {
               if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) === true)) {
                 node.material = new THREE.MeshBasicMaterial({
@@ -606,67 +608,13 @@ class App extends Component {
       }
       });
     }
-    }, 10000); // 20 seconds
+    }, 10000); // 10 seconds
     setInterval(function() {
       axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getHighFives', {
       }).then(function (res) {
-        highFivesArr = res.data;
-        let result = highFivesArr.map(a => {if (a.user ==="U017PEP5XV0") return a.text}); //replace U017PEP5XV0 with High Five bot        
-        let i = 0;
-        if (result.length >0 && i<result.length) {
-          loopHighFives()
-        } else {
-          banner = __this.plane.getObjectByName("Banner"); //rm const
-          banner.material	= new THREE.MeshStandardMaterial({
-            map	: this.bannerTexture,
-            side: THREE.DoubleSide,
-          })
-        }
-        function loopHighFives() {
-          if (__this.props.timelineActive !== 1){
-            banner = __this.plane.getObjectByName("Banner"); 
-            drawCanvas = document.createElement("CANVAS");
-            drawCanvas.width = 1800;
-            drawCanvas.height=1200;
-            ctx = drawCanvas.getContext("2d");
-            ctx.font = "250px Quicksand";
-            ctx.fillStyle = "white";
-            ctx.textAlign="center";
-            ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
-            ctx = wrapText(ctx, result[i], (drawCanvas.width-20)/2, 250, drawCanvas.width-100, 350);
-            ctx.textBaseline = "middle";
-    
-            canvaTexture=new THREE.CanvasTexture( drawCanvas );
-            canvaTexture.wrapS = THREE.RepeatWrapping;
-    
-            banner.material	= new THREE.MeshStandardMaterial({
-              map	: canvaTexture,
-              side: THREE.DoubleSide,
-      
-            })
-        function wrapText(context, text, x, y, maxWidth, lineHeight) { // function from codepen.io/nishiohirokazu/pen/jjNyye (MIT license)
-          words = text.split(' ');
-          line = '';
-          for (let n = 0; n<words.length; n++) {
-            testLine = line+words[n]+' ';
-            metrics = context.measureText(testLine);
-            testWidth = metrics.width;
-            if (testWidth > maxWidth && n > 0) {
-              context.fillText(line, x, y);
-              line = words[n]+ ' ';
-              y+= lineHeight;
-            } else {
-              line = testLine;
-            }
-          }
-          context.fillText(line,x,y);
-          return context;
-          }}
-          setTimeout(function() {
-            i++;
-            if (i < result.length+1) loopHighFives();
-          },550000/result.length );
-      }
+        let result = res.data.map(a => {if (a.user ==="U017PEP5XV0") return a.text}); //replace U017PEP5XV0 with High Five bot
+        let newHighFives = __this.state.highFives.concat(result)
+        __this.setState({highFives:newHighFives});   
       }).catch(function (error) {
         if (error.response !== void(0)){
         if (error.response.status===401) {
@@ -677,8 +625,59 @@ class App extends Component {
         }
       }
     });
-    }, 600000);//60000 ; 1 mins
+    }, 60000);//60000 ; 1 min
+
+    setInterval(function() {
+      console.log("high fives list")
+      console.log(__this.state.highFives)
+      if (__this.state.highFives.length > 0) {
+        console.log("THERE ARE HIGH FIVES!!")
+        if (__this.props.timelineActive !== 1){
+          banner = __this.plane.getObjectByName("Banner"); 
+          drawCanvas = document.createElement("CANVAS");
+          drawCanvas.width = 1024;
+          drawCanvas.height=1024;
+          ctx = drawCanvas.getContext("2d");
+          ctx.font = "250px Overpass";
+          ctx.fillStyle = "white";
+          ctx.textAlign="center";
+          ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
+          ctx = __this.wrapText(ctx, __this.state.highFives[0], (drawCanvas.width-20)/2, 100, drawCanvas.width-100, 350);
+          ctx.textBaseline = "middle";
+          canvaTexture=new THREE.CanvasTexture( drawCanvas );
+          canvaTexture.wrapS = THREE.RepeatWrapping;
+      
+          banner.material	= new THREE.MeshStandardMaterial({map	: canvaTexture,side: THREE.DoubleSide,});
+          __this.setState({highFives:__this.state.highFives.slice(1)})
+        }
+      } else {
+        banner = __this.plane.getObjectByName("Banner"); //rm const
+        banner.material	= new THREE.MeshStandardMaterial({
+          map	: __this.bannerTexture,
+          side: THREE.DoubleSide,
+        })      
+      }
+    }, 120000) // 2 mins; planes fly for 2 mins
 }
+
+  wrapText(context, text, x, y, maxWidth, lineHeight) { // function from codepen.io/nishiohirokazu/pen/jjNyye (MIT license)
+    words = text.split(' ');
+    line = '';
+    for (let n = 0; n<words.length; n++) {
+      testLine = line+words[n]+' ';
+      metrics = context.measureText(testLine);
+      testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        context.fillText(line, x, y);
+        line = words[n]+ ' ';
+        y+= lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    context.fillText(line,x,y);
+    return context; 
+  }     
 
   onDocumentMouseOver( event ) {
     event.preventDefault();

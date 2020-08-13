@@ -7,5 +7,3 @@ handlers:
 - url: /(.*)$
   static_files: build/\1
   upload: build/(.*)
-manual_scaling:
-  instances: 1

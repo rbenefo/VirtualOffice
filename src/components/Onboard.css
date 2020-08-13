@@ -5,18 +5,17 @@
     position: absolute;
     font-family: 'Overpass', sans-serif;
     top:5%;
-    left:33%;
     text-align: center;
+    margin-left:auto;
+    margin-right:auto;
 }
 #onboardContainer{
     display:block;
     height:100%;
     width:100%;
 }
-    
-table td {
-    border-right:solid 50px transparent;
-    border-left:solid 5px transparent;
+tr, td {
+    padding:10px;
 }
 #tlText{
     width:100%;
