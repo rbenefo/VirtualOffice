@@ -625,6 +625,10 @@ class App extends Component {
         let result = res.data.map(a => {if (a.user ==="U017PEP5XV0") {
                                           let highFiveText = a.text;
                                           highFiveText = highFiveText.substring(0, highFiveText.indexOf(':'));
+                                          console.log("highfivetext")
+                                          console.log(highFiveText)
+                                          console.log("a.text")
+                                          console.log(a.text)
                                           return highFiveText
         }}); //replace U017PEP5XV0 with High Five bot
         
