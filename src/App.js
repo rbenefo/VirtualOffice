@@ -88,6 +88,7 @@ var forkLiftEmptyAnim, crateAction, rightGarageAction, chalkyCarEmptyAction, cha
 
 var dhours;
 
+var closestTemp = -1; // init negative to force update on first run
 /// End Initialize Vars ///
 
 
@@ -182,8 +183,7 @@ class App extends Component {
 
   };
   componentDidMount() {
-    console.log("test8")
-    this.totRoomsOnTemp = 10000;
+    this.totRoomsOnTemp = -1;
     this.sceneSetup();
     this.load();
     this.initTimelineData();
@@ -502,29 +502,28 @@ class App extends Component {
   })};
 
   updateTimelineData() {
-    this.totRoomsOnTemp = 10000; // make totRoomsOnTemp large to force update
+    this.totRoomsOnTemp = -1; // make totRoomsOnTemp negative to force update
       __this = this;
-      console.log(this.state.bulkData)
       if (this.state.bulkData !== []) {
         if ( typeof this.state.bulkData.presenceData !== "undefined" && this.state.bulkData.presenceData) {
           if (this.state.bulkData.presenceData.length > 0) {
           timeArr = (this.state.bulkData.presenceData.map(function(value,index) { 
                       return value[__this.state.bulkData.presenceData[0].length-1]; 
                     }));
-          goal = this.props.timelineTime;
-  
+          goal = this.props.timelineTime;  
           closest = timeArr.reduce(function(prev, curr) {
             return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
-          });        
+          });     
+          
+          if (closest !== closestTemp) {
+          closestTemp = closest;
           relevantIndex = (timeArr.indexOf(closest));
-          relevantPresence = this.state.bulkData.presenceData[relevantIndex];
-          relevantPresence.pop();
+          let relevantPresenceLong = this.state.bulkData.presenceData[relevantIndex];
+          relevantPresence = relevantPresenceLong.slice(0, relevantPresenceLong.length-1)
           var totOnline = 0;
           relevantPresence.forEach(function(val) {
             totOnline += val;
           })
-          console.log("relevant presence bulk")
-          console.log(relevantPresence)
           let totRoomsOn = Math.floor((totOnline/relevantPresence.length)*windowsToToggle.length);
           let frontWindows = __this.windows.getObjectByName("FrontWindows");
           let toTurnOn = [];
@@ -532,8 +531,6 @@ class App extends Component {
             return 0.5 - Math.random();
           });
           toTurnOn = x.slice(0, totRoomsOn);
-          console.log("to turn on bulk")
-          console.log(toTurnOn)
           frontWindows.traverse(function(node) {
             if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) ===true)) {
               node.material = new THREE.MeshBasicMaterial({
@@ -544,7 +541,8 @@ class App extends Component {
                 color:"#000000", // window ON
                 });
             }
-          })   
+          })  
+        } 
         }};
      };
     };
@@ -569,7 +567,6 @@ class App extends Component {
       if (__this.props.timelineActive !== 1){ 
         axios.get('https://virtualoffice-285701.ue.r.appspot.com/api/slackRoute/getPresence', {
         }).then(function (res) {
-            console.log("got live data")
             var data = res.data;
             var totOnline = 0;
             data.forEach(function(val) {
@@ -584,8 +581,6 @@ class App extends Component {
               return 0.5 - Math.random();
             });
             toTurnOn = x.slice(0, totRoomsOn);
-            console.log("live to turn on")
-            console.log(toTurnOn)
             frontWindows.traverse(function(node) {
               if ((toTurnOn.includes(node.name)=== true) && (windowsToToggle.includes(node.name) === true)) {
                 node.material = new THREE.MeshBasicMaterial({
@@ -625,24 +620,21 @@ class App extends Component {
         }
       }
     });
-    }, 60000);//60000 ; 1 min
+    }, 120000);// 2 min
 
     setInterval(function() {
-      console.log("high fives list")
-      console.log(__this.state.highFives)
       if (__this.state.highFives.length > 0) {
-        console.log("THERE ARE HIGH FIVES!!")
         if (__this.props.timelineActive !== 1){
           banner = __this.plane.getObjectByName("Banner"); 
           drawCanvas = document.createElement("CANVAS");
           drawCanvas.width = 1024;
           drawCanvas.height=1024;
           ctx = drawCanvas.getContext("2d");
-          ctx.font = "250px Overpass";
+          ctx.font = "200px Overpass";
           ctx.fillStyle = "white";
           ctx.textAlign="center";
           ctx.transform(1, 0, 0, -1, 0, drawCanvas.height)
-          ctx = __this.wrapText(ctx, __this.state.highFives[0], (drawCanvas.width-20)/2, 100, drawCanvas.width-100, 350);
+          ctx = __this.wrapText(ctx, __this.state.highFives[0], (drawCanvas.width-20)/2, 350, drawCanvas.width-100, 350);
           ctx.textBaseline = "middle";
           canvaTexture=new THREE.CanvasTexture( drawCanvas );
           canvaTexture.wrapS = THREE.RepeatWrapping;
@@ -651,7 +643,7 @@ class App extends Component {
           __this.setState({highFives:__this.state.highFives.slice(1)})
         }
       } else {
-        banner = __this.plane.getObjectByName("Banner"); //rm const
+        banner = __this.plane.getObjectByName("Banner"); 
         banner.material	= new THREE.MeshStandardMaterial({
           map	: __this.bannerTexture,
           side: THREE.DoubleSide,
